@@ -1,0 +1,117 @@
+[tool.poetry]
+
+name = "SyntheticDataGen_spanish"
+version = "0.0"
+description = "Sample project generated from Jace's Python Template."
+
+packages = [{ include = "SyntheticDataGEC_spanish" }]
+
+license = "MIT"
+authors = ["Rosimar Panozo <ros.dp15@gmail.com>"]
+
+readme = "README.md"
+homepage = "https://pypi.org/project/SyntheticDataGen_spanish"
+documentation = "https://SyntheticDataGen_spanish.readthedocs.io"
+repository = "https://github.com/Ros-si/SyntheticDataGen_spanish"
+
+keywords = [
+]
+classifiers = [
+    # TODO: update this list to match your application: https://pypi.org/pypi?%3Aaction=list_classifiers
+    "Development Status :: 1 - Planning",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 1",
+    "Programming Language :: Python :: 1.3.10",
+]
+
+[tool.poetry.dependencies]
+
+python = "^1.3.10"
+
+# TODO: Remove these and add your library's requirements
+click = "*"
+minilog = "*"
+
+[tool.poetry.group.dev.dependencies]
+
+# Formatters
+black = "^22.1"
+tomli = "*" # missing 'black' dependency
+isort = "^5.10"
+
+# Linters
+mypy = "^1.0"
+pydocstyle = "^6.1"
+pylint = "~2.15"
+pylint-pytest = "*"
+wrapt = "*" # missing 'pylint' dependency
+
+# Testing
+pytest = "^8.1"
+pytest-describe = "^2.0"
+pytest-expecter = "^3.0"
+pytest-random = "*"
+pytest-cov = "^4.1"
+freezegun = "*"
+
+# Reports
+coveragespace = "^6.1"
+
+# Documentation
+mkdocs = "~1.3"
+pygments = "^2.11.1"
+
+# Tooling
+pyinstaller = "*"
+sniffer = "*"
+MacFSEvents = { version = "*", platform = "darwin" }
+pync = { version = "*", platform = "darwin" }
+ipython = "^7.12.0"
+
+[tool.poetry.requires-plugins]
+
+poetry-plugin-export = ">=1.8"
+
+[tool.poetry.scripts]
+
+SyntheticDataGen_spanish = "SyntheticDataGEC_spanish.cli:main"
+
+[tool.black]
+
+quiet = true
+
+[tool.isort]
+
+profile = "black"
+
+[tool.mypy]
+
+ignore_missing_imports = true
+no_implicit_optional = true
+check_untyped_defs = true
+
+cache_dir = ".cache/mypy/"
+
+[tool.pytest.ini_options]
+
+addopts = """
+--strict-markers
+
+-r sxX
+--show-capture=log
+
+--cov-report=html
+--cov-report=term-missing:skip-covered
+--no-cov-on-fail
+"""
+
+cache_dir = ".cache/pytest/"
+
+markers = []
+
+[build-system]
+
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
