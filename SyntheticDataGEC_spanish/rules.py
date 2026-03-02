@@ -75,12 +75,12 @@ class RulesHandler:
     
     ##para gnumsing y verbform
     def generate_error_lemma(self, token):
-        print(token.pos_, token.lemma_)
         t_lemma = token.lemma_
         if t_lemma != token.text:
             if token.is_title: 
                 t_lemma=t_lemma.title()
-        else: return ""
+        else: 
+            return ""
         return t_lemma
             
     

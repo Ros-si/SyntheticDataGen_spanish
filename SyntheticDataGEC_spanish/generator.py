@@ -57,7 +57,6 @@ class ErrorGenerator:
         else:
             #content = self.datafr['aux_corrupted_tagged'][idx_data][span_ini]
             if self.datafr['error_tags'][idx_data][span_ini] != c.ErrorTag.NO_ERROR.id_num: # ya  tiene errores
-                print("**: ",self.datafr['error_tags'][idx_data])
                 span_text =self.__get_new_corrupted_tagged(idx_data, span_ini, span_text)                        
                 self.datafr['aux_corrupted_tagged'][idx_data][span_ini]= span_text  
             else:
@@ -93,6 +92,8 @@ class ErrorGenerator:
             tokens_candidates =[token for token in doc if token.pos_ in ['DET','PRON'] 
                                     and (token.text in c.ART_PRON_MASC or token.text in c.ART_PRON_FEM)
                                     and token.text not in tokens_ents]
+            
+
             if tokens_candidates:     
                 random_tokens = self.__get_k_tokens_candidates(tokens_candidates)  # tokens a tomar en cuenta      
                 for token in random_tokens:         
@@ -197,6 +198,7 @@ class ErrorGenerator:
             tokens_ents = set(tok.text for ent in doc.ents for tok in ent)
             tokens_candidates = [token for token in doc if (token.pos_=="VERB" or token.pos_=="AUX")
                                                  and token.text not in tokens_ents ]
+
             if tokens_candidates:       
                 random_tokens = self.__get_k_tokens_candidates(tokens_candidates)
                 for token in random_tokens:

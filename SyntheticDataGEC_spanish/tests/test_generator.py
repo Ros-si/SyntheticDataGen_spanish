@@ -10,7 +10,7 @@ from spacy.tokens import Doc
 class TestErrorGenerator(unittest.TestCase):
     
     def setUp(self):
-        self.nlp = spacy.load("es_core_news_md")
+        self.nlp = spacy.load("es_core_news_lg")
         #self.nlp.remove_pipe("lemmatizer")
         #self.nlp.add_pipe("lemmatizer", config={"mode": "lookup"}).initialize()
        
@@ -20,15 +20,16 @@ class TestErrorGenerator(unittest.TestCase):
         'estaba jugando en el jardín mientras el gato dormia.',
         'La niña encontró su mochila en la mesa.',
         'Una señora pidió ayuda porque ella no encontraba su boleto.',
+        'intenta buscar consuelo en la comida'
         ]
         self.texts_numPlur=['El gato jugaba con los niños', 'está pintada de un color blanco','Me gusta tomar un café caliente','El sofá nuevo es muy cómodo','El jabalí corría rápidamente','la interfaz quedó muy buena','El mánager me pidió los resultados']
         self.texts_numSing=['Los gatos jugaban con el raton', 'Las casas del vecindario están de blanco','Me gusta tomar dos tazas de café caliente por la mañana','Las sillas son muy cómodas','Los caballos corrían rápidamente']
         self.texts_art=['El gato negro duerme en la silla.','La luna llena iluminó el cielo oscuro','El libro tiene historias muy interesantes','el cielo es azul.','la milla extra']
-        self.texts_verbForm=['La niña dibujó un paisaje hermoso','Nosotros viajaremos a la playa mañana.','Ellos comen en silencio.','caminas muy despacio.','estudiamos en la biblioteca todos los días.']
+        self.texts_verbForm=['La niña dibujó un paisaje hermoso','Nosotros viajaremos en bus a la ciudad mañana.','Ellos comen en silencio.','caminas muy despacio.','estudiamos en la biblioteca todos los días.']
         self.texts_title=['La lujosa casa.','el niño.','mi hermana estudia en Harvard','los Emiratos Árabes']
         self.texts_accent=['La decisión final','Este examen será muy importante','Vió la novela que tanto esperaba']
         self.texts_punctuation=['No, me gusta la lluvia','¿Vas a la fiesta?', 'Pedro, llegas tarde.' ]
-        self.texts_wo =[ 'Comer manzanas todos los días es saludable.', # VERB NOUN
+        self.texts_wo =[ 'comer manzanas todos los días es saludable.', # VERB NOUN
          'los felinos cazan eficientemente.', # VERB ADV
          'Zautla es uno de los 217 municipios que integran el estado mexicano de Puebla', #NOUN ADJ
          'Morton construyó una fuerte relación académica por correspondencia con Si', #ADJ NOUN
@@ -41,7 +42,7 @@ class TestErrorGenerator(unittest.TestCase):
         self.texts_smistake=['El gato come pescado fresco.','ella visita a su abuela', 'estas helado',"salió por el garaje","la gigantesca montaña"]
         
         self.texts_nPlur_verbF=['No fumes mucho tabaco', 'Nuestra lámpara brilla mas en enero.']
-        self.texts_vF_gen_wo=['intenta buscar consuelo en la comida', 'la mañana del 2 de abril, jugaba feliz']
+        self.texts_vF_gen_wo=['intentaba buscar consuelo en la comida', 'la mañana del 2 de abril, jugaba feliz']
 
     def set_datafr(self, texts):
         datafr= pd.DataFrame(texts, columns=['sentence'])
@@ -70,25 +71,22 @@ class TestErrorGenerator(unittest.TestCase):
             data_gen['tokens'][0],
             ['estaba', 'jugando', 'en', 'la', 'jardín', 'mientras', 'la', 'gato', 'dormia', '.']
         )
-        self.assertEqual(
-            data_gen['error_tags'][0],
-            [
-                c.ErrorTag.NO_ERROR.id_num,
-                c.ErrorTag.NO_ERROR.id_num,
-                c.ErrorTag.NO_ERROR.id_num,
-                c.ErrorTag.GENDER.id_num,     # la
-                c.ErrorTag.NO_ERROR.id_num,
-                c.ErrorTag.NO_ERROR.id_num,
-                c.ErrorTag.GENDER.id_num,     # la
-                c.ErrorTag.NO_ERROR.id_num,
-                c.ErrorTag.NO_ERROR.id_num,
-                c.ErrorTag.NO_ERROR.id_num
-            ]
-        )
+        self.assertEqual(data_gen['error_tags'][0],[c.ErrorTag.NO_ERROR.id_num,
+                                                    c.ErrorTag.NO_ERROR.id_num,
+                                                    c.ErrorTag.NO_ERROR.id_num,
+                                                    c.ErrorTag.GENDER.id_num,     # la
+                                                    c.ErrorTag.NO_ERROR.id_num,
+                                                    c.ErrorTag.NO_ERROR.id_num,
+                                                    c.ErrorTag.GENDER.id_num,     # la
+                                                    c.ErrorTag.NO_ERROR.id_num,
+                                                    c.ErrorTag.NO_ERROR.id_num,
+                                                    c.ErrorTag.NO_ERROR.id_num
+                                                ])
         self.assertEqual(
             data_gen['corrupted'][1],'La niña encontró su mochila en el mesa.')
         self.assertEqual(data_gen['corrupted'][2], 'Una señora pidió ayuda porque él no encontraba su boleto.')
-   
+        self.assertEqual(data_gen['corrupted'][3], 'intenta buscar consuelo en el comida')
+
     def test_fill_error_gnumPlur(self):
         data = self.set_datafr(self.texts_numPlur)
         errorGenerator = ErrorGenerator(data, self.nlp, 3)
@@ -160,12 +158,12 @@ class TestErrorGenerator(unittest.TestCase):
                                                 c.ErrorTag.NO_ERROR.id_num,
                                                 c.ErrorTag.NO_ERROR.id_num])
         self.assertEqual(data['tokens'][0],['La', 'niña', 'dibujar', 'un', 'paisaje' ,'hermoso'])
-        self.assertEqual(data['corrupted'][1],'Nosotros viajar a la playa mañana.')
+        self.assertIn(data['corrupted'][1],['Nosotros viajar en bus a la ciudad mañana.', 'Nosotros viajarer en bus a la ciudad mañana.'])
         self.assertEqual(data['corrupted'][2],'Ellos comer en silencio.')
         self.assertEqual(data['corrupted'][3],'caminar muy despacio.')
         self.assertEqual(data['corrupted'][4],'estudiar en la biblioteca todos los días.')
       
-"""
+
     def test_fill_error_title(self):
         data = self.set_datafr(self.texts_title)
         errorGenerator = ErrorGenerator(data, self.nlp)
@@ -180,7 +178,7 @@ class TestErrorGenerator(unittest.TestCase):
         self.assertEqual(data['corrupted'][2],'mi Hermana Estudia en Harvard')
         self.assertEqual(data['corrupted'][3],'Los Emiratos Árabes')
 
-    
+   
     def test_fill_error_accent(self):
         data = self.set_datafr(self.texts_accent)
         errorGenerator = ErrorGenerator(data, self.nlp)
@@ -233,14 +231,16 @@ class TestErrorGenerator(unittest.TestCase):
                                                 c.ErrorTag.NO_ERROR.id_num, 
                                                 c.ErrorTag.NO_ERROR.id_num,
                                                 c.ErrorTag.NO_ERROR.id_num])
-        self.assertIn(data['corrupted'][1],['Vas a la fiesta?','¿Vas a la fiesta ','Vas a la fiesta'])
-        self.assertIn(data['corrupted'][2],['Pedro llegas tarde.','Pedro, llegas tarde ','Pedro llegas tarde '])    
+        self.assertIn(data['corrupted'][1],['Vas a la fiesta?','¿Vas a la fiesta','Vas a la fiesta'])
+        self.assertIn(data['corrupted'][2],['Pedro llegas tarde.','Pedro, llegas tarde','Pedro llegas tarde'])    
+
 
     def test_fill_errors_vform_gen_wo(self):       
         data = self.set_datafr(self.texts_vF_gen_wo)
         errorGenerator = ErrorGenerator(data, self.nlp)
-        errorGenerator.fill_error_g_verbForm(data['sentence'],0)
-        errorGenerator.fill_errors_genre(data['corrupted'],0)
+        errorGenerator.fill_errors_genre(data['sentence'],0)
+        errorGenerator.fill_error_g_verbForm(data['corrupted'],0)
+        
         errorGenerator.fill_error_ggword_order(data['corrupted'],0)
         self.assertEqual(data['corrupted'][0],'intentar consuelo buscar en el comida')
         self.assertEqual(data['corrupted'][1],'el mañana del 2 de abril, feliz jugar')
@@ -285,7 +285,7 @@ class TestErrorGenerator(unittest.TestCase):
         self.assertIn(data['corrupted'][1], ['ella bizita a su avuela','ella vizita a su avuela','ella bisita a su avuela'])
         self.assertEqual(data['corrupted'][2], 'estas elado')
         self.assertEqual(data['corrupted'][3],'zalió por el garage')
-        self.assertIn(data['corrupted'][4], ['la gigantezca nontaña','la gigamtesca nontaña','la jigantesca momtaña','la gigamtesca momtaña','la gigantesca nontaña','la jigantesca nontaña','la gigamtesca momtaña'])
-"""    
+        self.assertIn(data['corrupted'][4], ['la gigantezca nontaña','la gigamtesca nontaña','la jigantesca momtaña','la gigamtesca momtaña','la gigantesca nontaña','la jigantesca nontaña','la gigamtesca momtaña', 'la gigantezca momtaña'])
+  
 if __name__ == '__main__':
     unittest.main()

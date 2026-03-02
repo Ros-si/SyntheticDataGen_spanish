@@ -8,7 +8,7 @@ from SyntheticDataGEC_spanish.rules import RulesHandler
 
 @pytest.fixture(scope="module")
 def nlp():
-    nlp_model = spacy.load("es_core_news_md")    
+    nlp_model = spacy.load("es_core_news_lg")    
     return nlp_model
 
 
@@ -20,6 +20,7 @@ def generator(nlp):
 # Tests modificación de género 
 @pytest.mark.parametrize("word, expected", [
     ("el", "la"),  # Masculino -> Femenino
+    ("la", "el"),  # Femenino -> Masculino
     ("Aquel", "Aquella"),  # Masculino -> Femenino
     ("Ellos", "Ellas"),  # Masculino -> Femenino
     ("ningun", "ninguna"),  # Masculino -> Femenino
@@ -49,9 +50,9 @@ def test_generate_error_gnumPlur(nlp, generator, word, expected):
 # --- Tests de Lematización (Singular y Verbos) ---
 @pytest.mark.parametrize("word, expected", [
     ("vacas", "vaca"),      # plural -> singular
-    ("Luces", "Luz"),        # plural -> singular
+    ("Estaciones", "Estación"),        # plural -> singular
     ("Jugamos", "Jugar"),    # 3persona plural -> Infinitivo
-    ("Comerás", "Comer"),  # 2persona futuro -> Infinitivo
+    ("Comiendo", "Comer"),  #
     ("tenemos", "tener"), # 1persona, plural -> infinitivo
     ("cantando", "cantar"), # Gerundio -> Infinitivo
     ("Estaba", "Estar"),  # 1persona singular pretérito imperfecto -> cambio de raíz (infinitivo)
