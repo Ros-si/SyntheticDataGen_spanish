@@ -2,9 +2,8 @@
 # pylint: disable=unused-variable,expression-not-assigned,singleton-comparison
 import pytest
 import spacy
-import random
 from unittest.mock import patch
-from SyntheticDataGEC_spanish.rules import RulesHandler
+from src.rules import RulesHandler
 
 @pytest.fixture(scope="module")
 def nlp():

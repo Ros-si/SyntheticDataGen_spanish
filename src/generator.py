@@ -6,10 +6,10 @@ from spacy.tokens import Doc
 import random
 import re
 from . import constants as c
-from SyntheticDataGEC_spanish.rules import RulesHandler 
+from src.rules import RulesHandler 
 
 class ErrorGenerator:
-    def __init__(self, datafr,nlp , error_rate=3):
+    def __init__(self, datafr, nlp, error_rate=3):
         self.datafr = datafr
         self.error_rate = error_rate 
         self.nlp = nlp
@@ -41,8 +41,14 @@ class ErrorGenerator:
 
 
     def __set_columns_corrupted(self, idx_data):
-        self.datafr.loc[idx_data, 'corrupted'] = Doc(self.nlp.vocab, words=self.datafr['tokens'][idx_data], spaces=self.datafr['spaces'][idx_data]).text.strip()
-        self.datafr.loc[idx_data, 'corrupted_tagged']= Doc(self.nlp.vocab, words= self.datafr['aux_corrupted_tagged'][idx_data], spaces=self.datafr['spaces'][idx_data]).text.strip()
+        try:
+            self.datafr.loc[idx_data, 'corrupted'] = Doc(self.nlp.vocab, words=self.datafr['tokens'][idx_data], spaces=self.datafr['spaces'][idx_data]).text.strip()
+            self.datafr.loc[idx_data, 'corrupted_tagged']= Doc(self.nlp.vocab, words= self.datafr['aux_corrupted_tagged'][idx_data], spaces=self.datafr['spaces'][idx_data]).text.strip()
+        except Exception as e:
+            print(f"Error al procesar el índice {idx_data} para corrupted_tagged: {e}")
+            #print(f"len tokens: {len(self.datafr['tokens'][idx_data])} len spaces: {len(self.datafr['spaces'][idx_data])}")
+            #print(f"Tokens: {self.datafr['tokens'][idx_data]}")
+            #print(f"Spaces: {self.datafr['spaces'][idx_data]}")
 
 
     def __get_new_corrupted_tagged(self, idx_data, span_ini, span_text):
@@ -80,7 +86,7 @@ class ErrorGenerator:
     #g/genre con articulos, pronombres  y las preposicion del ,de la 
     # se  verifica que el token sea articulo o pronombre, se modifica el token por su contrapuesto en las listas:
     # rt_pron_fem (de genero femenino) y rt_pron_masc (de genero masculino)
-    def fill_errors_genre(self, batch_,id_ini):
+    def fill_errors_ggenre(self, batch_,id_ini):
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini    
         for doc in docs:
@@ -105,7 +111,7 @@ class ErrorGenerator:
             idx_data +=1
         
     # se verifica que el token sea  un sustantivo singular, y si termina en una vocal, se o modifica, agregando una 's' al final de la palabra
-    def fill_error_gnumPlur(self, batch_, id_ini):
+    def fill_errors_gnumPlur(self, batch_, id_ini):
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini        
         for doc in docs:
@@ -122,16 +128,17 @@ class ErrorGenerator:
                 random_tokens = self.__get_k_tokens_candidates(tokens_candidates)  # tokens a tomar en cuenta    
                 for token in random_tokens:
                     t_text = self.rules.generate_error_gnumPlur(token)
-                    self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.NUM_PLUR.label )
-                    self.__set_corrupted_tagged(idx_data, token.i, token.i+1,[t_text], c.ErrorTag.NUM_PLUR.label)     
-                    self.__update_error_tags_and_tokens(idx_data, token.i, t_text, c.ErrorTag.NUM_PLUR.id_num)
+                    if t_text:
+                        self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.NUM_PLUR.label )
+                        self.__set_corrupted_tagged(idx_data, token.i, token.i+1,[t_text], c.ErrorTag.NUM_PLUR.label)     
+                        self.__update_error_tags_and_tokens(idx_data, token.i, t_text, c.ErrorTag.NUM_PLUR.id_num)
                 self.__set_columns_corrupted(idx_data)
             idx_data += 1
 
 
     #g/number singular
     # se modifica los sustantivos y adjetivos plurales a su forma singular 
-    def fill_error_gnumSing(self, batch_, id_ini):
+    def fill_errors_gnumSing(self, batch_, id_ini):
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini        
         for doc in docs:
@@ -158,7 +165,7 @@ class ErrorGenerator:
 
 
     #g/guart verifica si el token.morph PronType=='Art', es decir un articulo y lo remueve
-    def fill_error_guart(self, batch_, id_ini):
+    def fill_errors_guart(self, batch_, id_ini):
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         for doc in docs:
@@ -188,7 +195,7 @@ class ErrorGenerator:
     #se verifica que la oracion no sea una entidad nombrada, 
     #si el token es un verbo o verbo auxiliar, se lo convierte a su forma base, sin conjugaciones ni inflexiones
    
-    def fill_error_g_verbForm(self, batch_,id_ini):
+    def fill_errors_gverbForm(self, batch_,id_ini):
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         for doc in docs:
@@ -226,7 +233,7 @@ class ErrorGenerator:
     #g/gwo 
     #se utiliza Matcher para encontrar las coincidencias respecto al orden de la palabras en la oracion (patterns_wo)
     #al encontrar los patrones definidos se modifica la oracion invietiendo el orden
-    def fill_error_ggword_order(self, batch_, id_ini):
+    def fill_errors_ggword_order(self, batch_, id_ini):
         docs = list(self.nlp.pipe(batch_))
         matcher = Matcher(self.nlp.vocab)
         idx_data = id_ini
@@ -260,7 +267,7 @@ class ErrorGenerator:
     #s/ generate_error_title 
     #Convierte el texto del token a formato título, 
     # donde la primera letra de cada palabra está en mayúscula y las demás en minúscula
-    def fill_error_title(self, batch_, id_ini):
+    def fill_errors_stitle(self, batch_, id_ini):
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         for doc in docs:             
@@ -288,7 +295,7 @@ class ErrorGenerator:
     #s/ generate_error_accent 
     # se usa unicode, para eliminar los acentos y caracteres especiales de una palabra, 
     # primeramente para encontrar palabras con tilde se usa el patron: pattern_accent
-    def fill_error_accent(self, batch_, id_ini):
+    def fill_errors_saccent(self, batch_, id_ini):
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         for doc in docs: 
@@ -305,14 +312,14 @@ class ErrorGenerator:
                 for token in random_tokens:
                     word = self.rules.generate_error_accent(token)
                     self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, word, c.ErrorTag.ACCENT.label )
-                    self.__set_corrupted_tagged(idx_data, token.i, token.i+1, [word], c.ErrorTag.ACCENT.id_num)
+                    self.__set_corrupted_tagged(idx_data, token.i, token.i+1, [word], c.ErrorTag.ACCENT.label)
                     self.__update_error_tags_and_tokens(idx_data, token.i, word, c.ErrorTag.ACCENT.id_num)
                 self.__set_columns_corrupted(idx_data)
             idx_data += 1
     
     #s/ error_substitution
     ##se reemplaza la letra(key) por el correspondiente value in ['VERB','NOUN','ADJ']
-    def fill_spelling_mistake(self, batch_, id_ini):
+    def fill_errors_smistake(self, batch_, id_ini):
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         replacement_keys = list(c.PHONETIC_REPLACEMENTS.keys())
@@ -330,7 +337,7 @@ class ErrorGenerator:
                 for token in random_candidates:
                     t_text = self.rules.generate_spelling_mistake(token)
                     self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.SPELLING.label )
-                    self.__set_corrupted_tagged(idx_data, token.i, token.i+1, [t_text], c.ErrorTag.SPELLING.id_num)
+                    self.__set_corrupted_tagged(idx_data, token.i, token.i+1, [t_text], c.ErrorTag.SPELLING.label)
                     self.__update_error_tags_and_tokens(idx_data, token.i, t_text, c.ErrorTag.SPELLING.id_num)
                     """                  
                         try:
@@ -346,7 +353,7 @@ class ErrorGenerator:
 
     # errors punctuation 
     # se elimina el signo de puntuacion de la oracion
-    def fill_error_punctuation(self, batch_,id_ini):
+    def fill_errors_punctuation(self, batch_,id_ini):
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         for doc in docs:
@@ -367,3 +374,95 @@ class ErrorGenerator:
                     self.datafr['spaces'][idx_data][token.i]=False                                          
                 self.__set_columns_corrupted(idx_data)
             idx_data += 1
+
+
+
+    #crea un arreglo con los indices de inicio y final de los batches para errores
+    def __create_idx_batch_dataset(self, num_batches=21):
+        print("creando batches")
+        tamaño_dataset = self.datafr.shape[0]
+        print("tamaño dataset:",tamaño_dataset)
+        tam_batch = tamaño_dataset // num_batches 
+        idx_batchs = []
+        for i in range(num_batches):
+            if i==num_batches-1:
+                idx_batchs.append([i*tam_batch, tamaño_dataset])
+            else: idx_batchs.append([i*tam_batch, ((i+1)*tam_batch)])
+        return idx_batchs
+    
+
+    # generar errores en batches , recibe una lista de listas de indices de cada batch [ [idx_inicio_batch, idx_fin_batch],[ii,ij].[ii,ij]]
+    def __generate_batches_with_errors(self, idx_batchs): 
+        print("generando errores")       
+        
+        self.fill_errors_ggenre(self.datafr['sentence'][idx_batchs[0][0]:idx_batchs[0][1]], idx_batchs[0][0])
+        self.fill_errors_gnumSing(self.datafr['sentence'][idx_batchs[1][0]:idx_batchs[1][1]], idx_batchs[1][0])
+        self.fill_errors_gnumPlur(self.datafr['sentence'][idx_batchs[2][0]:idx_batchs[2][1]], idx_batchs[2][0])
+       
+        self.fill_errors_guart(self.datafr['sentence'][idx_batchs[3][0]:idx_batchs[3][1]], idx_batchs[3][0])
+        self.fill_errors_gverbForm(self.datafr['sentence'][idx_batchs[4][0]:idx_batchs[4][1]], idx_batchs[4][0])
+        
+        self.fill_errors_ggword_order(self.datafr['sentence'][idx_batchs[5][0]:idx_batchs[5][1]], idx_batchs[5][0])
+        
+        self.fill_errors_stitle(self.datafr['sentence'][idx_batchs[6][0]:idx_batchs[6][1]], idx_batchs[6][0])
+        self.fill_errors_saccent(self.datafr['sentence'][idx_batchs[7][0]:idx_batchs[7][1]], idx_batchs[7][0])
+        self.fill_errors_punctuation(self.datafr['sentence'][idx_batchs[8][0]:idx_batchs[8][1]], idx_batchs[8][0])
+        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[9][0]:idx_batchs[9][1]], idx_batchs[9][0])
+        
+        print("generando errores combinados")
+        # a partir de aqui se generan batches combinando errores
+        self.fill_errors_ggenre(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
+        self.fill_errors_gverbForm(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
+        self.fill_errors_ggword_order(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
+
+        self.fill_errors_gnumSing(self.datafr['sentence'][idx_batchs[11][0]:idx_batchs[11][1]], idx_batchs[11][0])
+        self.fill_errors_gverbForm(self.datafr['sentence'][idx_batchs[11][0]:idx_batchs[11][1]], idx_batchs[11][0])
+
+        self.fill_errors_gnumPlur(self.datafr['sentence'][idx_batchs[12][0]:idx_batchs[12][1]], idx_batchs[12][0])
+        self.fill_errors_ggword_order(self.datafr['sentence'][idx_batchs[12][0]:idx_batchs[12][1]], idx_batchs[12][0])
+
+        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[13][0]:idx_batchs[13][1]], idx_batchs[13][0])
+        self.fill_errors_gverbForm(self.datafr['sentence'][idx_batchs[13][0]:idx_batchs[13][1]], idx_batchs[13][0])
+                
+        self.fill_errors_guart(self.datafr['sentence'][idx_batchs[14][0]:idx_batchs[14][1]], idx_batchs[14][0])
+        #self.__generate_error_g_verbForm(self.datafr['sentence'][idx_batchs[14][0]:idx_batchs[14][1]], idx_batchs[14][0])
+        self.fill_errors_ggword_order(self.datafr['sentence'][idx_batchs[14][0]:idx_batchs[14][1]], idx_batchs[14][0])
+
+        self.fill_errors_punctuation(self.datafr['sentence'][idx_batchs[15][0]:idx_batchs[15][1]], idx_batchs[15][0])
+        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[15][0]:idx_batchs[15][1]], idx_batchs[15][0])
+
+        self.fill_errors_gnumSing(self.datafr['sentence'][idx_batchs[16][0]:idx_batchs[16][1]], idx_batchs[16][0])
+        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[16][0]:idx_batchs[16][1]], idx_batchs[16][0])
+
+        self.fill_errors_gnumPlur(self.datafr['sentence'][idx_batchs[17][0]:idx_batchs[17][1]], idx_batchs[17][0])
+        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[17][0]:idx_batchs[17][1]], idx_batchs[17][0])
+
+        self.fill_errors_guart(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
+        self.fill_errors_saccent(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
+        self.fill_errors_stitle(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
+
+        self.fill_errors_ggenre(self.datafr['sentence'][idx_batchs[19][0]:idx_batchs[19][1]], idx_batchs[19][0])
+        self.fill_errors_gnumSing(self.datafr['sentence'][idx_batchs[19][0]:idx_batchs[19][1]], idx_batchs[19][0])
+
+        self.fill_errors_saccent(self.datafr['sentence'][idx_batchs[20][0]:idx_batchs[20][1]], idx_batchs[20][0])
+        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[20][0]:idx_batchs[20][1]], idx_batchs[20][0])
+
+
+    
+    #limpiar dataset
+    def clean_datafr(self):
+        df_no_empty = self.datafr[~self.datafr.map(lambda x: x is None or x == '' or (isinstance(x, list) and not x)).any(axis=1)]
+        return df_no_empty 
+    
+    def create_dataErrors(self):
+        print("creando conjunto de datos")
+        idx_batchs = self.__create_idx_batch_dataset(21) #crear 19 batches (10 errores individuales) 6 para errores combinados: gwo, guart, gverbForm 
+        print(idx_batchs)
+        self.__generate_batches_with_errors(idx_batchs)
+        print("limpiando conjunto de datos")
+        df_cleaned = self.clean_datafr()
+        # Barajar un DataFrame
+        df_cleaned = df_cleaned.sample(frac=1, random_state=42).reset_index(drop=True)
+        return df_cleaned
+    
+
