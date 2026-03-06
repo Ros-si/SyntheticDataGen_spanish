@@ -8,14 +8,14 @@ from src.generator import ErrorGenerator
 from collections import Counter
 import seaborn as sns
 import matplotlib.pyplot as plt
-from datasets import Dataset, ClassLabel, Sequence, load_dataset,DatasetDict
+from datasets import Dataset, ClassLabel, Sequence, DatasetDict
 from huggingface_hub import HfApi
 from pathlib import Path
 import os
 
 class DatasetGenerator:
 
-    def __init__(self, path_data, sampling, min_string=8, max_string=100, validation_size=0.1, test_size=0.1, name_dataset='dataCorrupted_to_GEC-GED', nlp=None):
+    def __init__(self, path_data, sampling, min_string=8, max_string=100, validation_size=0.1, test_size=0.1, name_dataset='dataCorrupted_to_GEC-GED', nlp=None, data_source=None, column_source="text"):
         self.path_data = path_data
         self.sampling = sampling
         self.min_string = min_string
@@ -24,6 +24,8 @@ class DatasetGenerator:
         self.test_size = test_size
         self.name_dataset = name_dataset
         self.nlp = nlp
+        self.data_source = data_source
+        self.column_source = column_source
 
     def __divide_sentences(self, text):
         """
@@ -123,9 +125,9 @@ class DatasetGenerator:
     }
 
     def __load_data(self):
-        ds = load_dataset("wikimedia/wikipedia", "20231101.es",split="train")
+        ds = self.data_source
         # Conservar solo la columna 'text'
-        ds = ds.remove_columns([col for col in ds.column_names if col != 'text'])
+        ds = ds.remove_columns([col for col in ds.column_names if col != self.column_source])
         ds = ds.shuffle(seed=123)
         splits=ds.train_test_split(train_size=self.sampling, seed=42)
         return splits['train']
