@@ -1,3 +1,5 @@
+import logging
+
 import unidecode
 
 import spacy
@@ -379,9 +381,8 @@ class ErrorGenerator:
 
     #crea un arreglo con los indices de inicio y final de los batches para errores
     def __create_idx_batch_dataset(self, num_batches=21):
-        print("creando batches")
+        logging.info("Creando batches")
         tamaño_dataset = self.datafr.shape[0]
-        print("tamaño dataset:",tamaño_dataset)
         tam_batch = tamaño_dataset // num_batches 
         idx_batchs = []
         for i in range(num_batches):
@@ -393,7 +394,7 @@ class ErrorGenerator:
 
     # generar errores en batches , recibe una lista de listas de indices de cada batch [ [idx_inicio_batch, idx_fin_batch],[ii,ij].[ii,ij]]
     def __generate_batches_with_errors(self, idx_batchs): 
-        print("generando errores")       
+        logging.info("Generando errores")       
         
         self.fill_errors_ggenre(self.datafr['sentence'][idx_batchs[0][0]:idx_batchs[0][1]], idx_batchs[0][0])
         self.fill_errors_gnumSing(self.datafr['sentence'][idx_batchs[1][0]:idx_batchs[1][1]], idx_batchs[1][0])
@@ -409,7 +410,7 @@ class ErrorGenerator:
         self.fill_errors_punctuation(self.datafr['sentence'][idx_batchs[8][0]:idx_batchs[8][1]], idx_batchs[8][0])
         self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[9][0]:idx_batchs[9][1]], idx_batchs[9][0])
         
-        print("generando errores combinados")
+        logging.info("Generando errores combinados")
         # a partir de aqui se generan batches combinando errores
         self.fill_errors_ggenre(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
         self.fill_errors_gverbForm(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
@@ -455,11 +456,11 @@ class ErrorGenerator:
         return df_no_empty 
     
     def create_dataErrors(self):
-        print("creando conjunto de datos")
+        logging.info("Creando nuevo conjunto de datos")
         idx_batchs = self.__create_idx_batch_dataset(21) #crear 19 batches (10 errores individuales) 6 para errores combinados: gwo, guart, gverbForm 
-        print(idx_batchs)
+        print("idx de batches:",idx_batchs)
         self.__generate_batches_with_errors(idx_batchs)
-        print("limpiando conjunto de datos")
+        logging.info("Limpiando nuevo conjunto de datos")
         df_cleaned = self.clean_datafr()
         # Barajar un DataFrame
         df_cleaned = df_cleaned.sample(frac=1, random_state=42).reset_index(drop=True)

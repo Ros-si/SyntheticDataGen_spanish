@@ -12,6 +12,7 @@ from datasets import Dataset, ClassLabel, Sequence, DatasetDict
 from huggingface_hub import HfApi
 from pathlib import Path
 import os
+from src.logger import logging
 
 class DatasetGenerator:
 
@@ -143,17 +144,17 @@ class DatasetGenerator:
     - dict con keys 'train', 'validation', 'test' y valores como datasets preparados
     """
     def __prepare_datafr(self):
-        print("cargando conjunto de datos...")
+        logging.info("Cargando conjunto de datos...")
         ds= self.__load_data()
-        print("len corpus cargado:", len(ds))
+        logging.info(f"len corpus cargado: {len(ds)}")
 
-        print("preparando nuevo conjunto de datos...")        
+        logging.info("Preparando nuevo conjunto de datos...")        
         flat_list = list(itertools.chain.from_iterable(map(self.__preprocess_text, ds['text'])))
         # se mezcla el corpus 
         random.shuffle(flat_list)
         new_datafr= self.__prepare_features(flat_list)
            
-        print(f"nuevo conjunto de datos preparado. Tamaño: {len(new_datafr)} filas.")
+        logging.info(f"Nuevo conjunto de datos preparado. Tamaño: {len(new_datafr)} filas.")
         splits = self.__generate_splits(new_datafr)     
 
         return splits
@@ -175,11 +176,11 @@ class DatasetGenerator:
 
            
     def save_data_to_csv(self, datafr,split):
-        print("guardando conjunto de datos limpio")
+        logging.info("Guardando conjunto de datos limpio")
         datafr.drop(['spaces','aux_corrupted_tagged'],axis=1, inplace=True)
         path_name=Path(f"{self.path_data}{self.name_dataset}_{split}.csv")
         datafr.to_csv(path_name, index=False)
-        print(f"guardado en {path_name}")
+        logging.info(f"Guardado en {path_name}")
 
     def save_data_to_Dataset_HF(self, datafr,labels_name, dataset_name):
         error_labels = ClassLabel(names=labels_name)
@@ -190,7 +191,7 @@ class DatasetGenerator:
         })
         # Especificar que 'error_tags' es una secuencia de ClassLabels
         hf_dataset = hf_dataset.cast_column('error_tags', Sequence(feature=error_labels))
-        print(hf_dataset)
+        print("DatasetHF:",hf_dataset)
         #hf_dataset =hf_dataset.remove_columns(['span', 'annotation']) #'__index_level_0__']) #
         
         # Cargar tus credenciales de Hugging Face (esto lo hace automáticamente si ya configuraste el token)
@@ -198,7 +199,7 @@ class DatasetGenerator:
         # Subir el Dataset a Hugging Face (esto asume que ya creaste el dataset en Hugging Face)
         api.create_repo(dataset_name, repo_type="dataset")
         hf_dataset.push_to_hub(dataset_name)
-        print(f"Dataset guardado en Hugging Face bajo el nombre: {dataset_name}")
+        logging.info(f"Dataset guardado en Hugging Face bajo el nombre: {dataset_name}")
         
 
 
@@ -216,7 +217,7 @@ class DatasetGenerator:
             errors_df = pd.DataFrame.from_dict(count_errors, orient='index', columns=['cantidad']).reset_index()
             errors_df.columns = ['error', 'cantidad']
             errors_df['split'] = split  # Añadir el nombre del split
-            print(errors_df)
+            print("Errors:",errors_df)
             all_data.append(errors_df)
 
         # Combinar todos los splits en un solo DataFrame
