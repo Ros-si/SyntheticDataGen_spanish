@@ -4,7 +4,7 @@ import unicodedata
 import re
 import itertools
 import random
-from src.generator import ErrorGenerator
+from src.errorGenerator import ErrorGenerator
 from collections import Counter
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -146,7 +146,7 @@ class DatasetGenerator:
     def __prepare_datafr(self):
         logging.info("Cargando conjunto de datos...")
         ds= self.__load_data()
-        logging.info(f"len corpus cargado: {len(ds)}")
+        logging.info(f"Corpus cargado, tamaño: {len(ds)}")
 
         logging.info("Preparando nuevo conjunto de datos...")        
         flat_list = list(itertools.chain.from_iterable(map(self.__preprocess_text, ds['text'])))
@@ -165,9 +165,9 @@ class DatasetGenerator:
         errorGenerator_validation = ErrorGenerator(dataset['validation'], self.nlp, error_rate=3)
         errorGenerator_test = ErrorGenerator(dataset['test'], self.nlp, error_rate=3)
 
-        datafr_errors_train = errorGenerator_train.create_dataErrors()
-        datafr_errors_validation= errorGenerator_validation.create_dataErrors()
-        datafr_errors_test = errorGenerator_test.create_dataErrors()
+        datafr_errors_train = errorGenerator_train.inyect_data_errors()
+        datafr_errors_validation= errorGenerator_validation.inyect_data_errors()
+        datafr_errors_test = errorGenerator_test.inyect_data_errors()
         return {
             'train':datafr_errors_train,
             'validation':datafr_errors_validation,

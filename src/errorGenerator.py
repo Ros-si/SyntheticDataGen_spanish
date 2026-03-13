@@ -455,14 +455,15 @@ class ErrorGenerator:
         df_no_empty = self.datafr[~self.datafr.map(lambda x: x is None or x == '' or (isinstance(x, list) and not x)).any(axis=1)]
         return df_no_empty 
     
-    def create_dataErrors(self):
+    
+    def inyect_data_errors(self):
         logging.info("Creando nuevo conjunto de datos")
         idx_batchs = self.__create_idx_batch_dataset(21) #crear 19 batches (10 errores individuales) 6 para errores combinados: gwo, guart, gverbForm 
-        print("idx de batches:",idx_batchs)
+        
         self.__generate_batches_with_errors(idx_batchs)
         logging.info("Limpiando nuevo conjunto de datos")
+
         df_cleaned = self.clean_datafr()
-        # Barajar un DataFrame
         df_cleaned = df_cleaned.sample(frac=1, random_state=42).reset_index(drop=True)
         return df_cleaned
     
