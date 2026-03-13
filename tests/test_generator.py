@@ -1,4 +1,4 @@
-from src.generator import ErrorGenerator
+from SyntheticDataGen_spanish.src.errorGenerator import ErrorGenerator
 from src import constants as c
 import pytest
 import pandas as pd
