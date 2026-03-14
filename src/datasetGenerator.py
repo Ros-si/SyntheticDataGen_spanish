@@ -15,6 +15,35 @@ import os
 from src.logger import logging
 
 class DatasetGenerator:
+    """
+    Clase encargada de la generación del nuevo dataset con errores inyectados a partir de un corpus original.
+    Limpia y preprocesa el texto, prepara las features necesarias, divide el dataset en splits y orquesta la inyección de errores utilizando la clase ErrorGenerator.   
+    Finalmente, guarda los datasets generados en formato CSV y los sube a Hugging Face, además de generar una gráfica con la distribución de tipos de errores
+
+    Parameters
+    ----------
+    path_data : str
+        Ruta donde se guardarán los archivos CSV generados
+    sampling : float
+        Proporción del dataset original a utilizar para la generación (entre 0 y 1)
+    min_string : int, opcional
+        Longitud mínima de las oraciones a incluir (por defecto es 8)
+    max_string : int, opcional
+        Longitud máxima de las oraciones a incluir (por defecto es 100)
+    validation_size : float, opcional
+        Proporción del dataset para el conjunto de validación (por defecto es 0.1)
+    test_size : float, opcional
+        Proporción del dataset para el conjunto de prueba (por defecto es 0.1)
+    name_dataset : str, opcional     
+        Nombre base para los archivos generados (por defecto es 'dataCorrupted_to_GEC-GED')
+    nlp : spacy.lang.es.Spanish
+        Modelo de lenguaje de spaCy para procesamiento de texto
+    data_source : datasets.Dataset
+        Conjunto de datos de Hugging Face a utilizar como fuente
+    column_source : str, opcional
+        Nombre de la columna en data_source que contiene el texto a procesar (por defecto es
+
+    """
 
     def __init__(self, path_data, sampling, min_string=8, max_string=100, validation_size=0.1, test_size=0.1, name_dataset='dataCorrupted_to_GEC-GED', nlp=None, data_source=None, column_source="text"):
         self.path_data = path_data
@@ -30,14 +59,32 @@ class DatasetGenerator:
 
     def __divide_sentences(self, text):
         """
-        Divide el texto en una lista de oraciones usando saltos de línea como delimitadores
+        Funcion auxiliar. Divide el texto en una lista de oraciones usando saltos de línea como delimitadores
+        Parameters
+        ----------
+        text : str
+            El texto completo a dividir en oraciones
+        Returns
+        -------
+        list
+            Lista de oraciones extraídas del texto
         """
         return  re.split(r'\n\n|\n', text)
 
+
     def __filter_sentences(self, sentences):
         """
-        Filtra oraciones excluyendo URLs, rutas de archivos y validando 
+        Funcion auxiliar. Filtra oraciones excluyendo URLs, rutas de archivos y validando 
         que la cantidad de palabras esté dentro del rango (min_string, max_string)
+        
+        Parameters
+        ----------
+        sentences : list    
+            Lista de oraciones a filtrar
+        Returns
+        -------
+        list 
+            Lista de oraciones que cumplen con los criterios de filtrado
         """
         pattern_exclude = r'(' \
                         r'https?://\S+|' \
@@ -52,14 +99,38 @@ class DatasetGenerator:
             if not re.search(pattern_exclude, sentence)
             and self.min_string <= len(sentence.split()) <= self.max_string
         ]
+    
+
     def __normalize_sentence(self, text):   
-        """Normaliza el texto utilizando el estándar Unicode NFKC"""     
+        """
+        Funcion auxiliar. Normaliza el texto utilizando el estándar Unicode NFKC
+        
+        Parameters
+        ----------
+        text : str  
+            El texto a normalizar
+        Returns
+        -------
+        str           
+            El texto normalizado según el estándar Unicode NFKC
+        """     
         return unicodedata.normalize('NFKC', str(text))
         
+
+
     def __preprocess_text(self, text):
         """
-        Realiza el preprocesamiento completo: normalización, 
-        división por líneas y filtrado.
+        Funcion auxiliar. Realiza el preprocesamiento completo: normalización, 
+        división por líneas y filtrado
+
+        Parameters
+        ----------
+        text : str
+            El texto completo a preprocesar 
+        Returns
+        -------
+        list
+            Lista de oraciones preprocesadas y filtradas
         """
         # Normalizar el texto
         normalized_text = self.__normalize_sentence(text)
@@ -78,6 +149,18 @@ class DatasetGenerator:
     #min_string : minima cantidad de caracteres que puede contener la oracion
     #max_string: maxima cantidad de carcteres que puede contener la oracion
     def __prepare_features(self,flat_list):
+        """
+        Funcion auxiliar. Prepara un DataFrame a partir de una lista de oraciones, inicializando columnas para las anotaciones
+        
+        Parameters
+        ----------
+        flat_list : list 
+            Lista de oraciones preprocesadas y filtradas para preparar el DataFrame
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame con las oraciones del corpus base y columnas inicializadas para las anotaciones de los errores a inyectar
+        """
         #flat_list = list(itertools.chain.from_iterable(map(self.__preprocess_text, texts)))
         # se guardan n cantidad de oraciones(n_sentences) en datafr
         #random.shuffle(flat_list) 
@@ -96,13 +179,19 @@ class DatasetGenerator:
 
     def __generate_splits(self, df, seed=42):
         """
-        Divide un DataFrame en train, validation y test.
+        Funcion auxiliar. Divide un DataFrame en train, validation y test.
         
-        Params:
-        - df: pd.DataFrame
-        - seed: int para reproducibilidad
-        """
-        
+        Parameters
+        ----------  
+        df : pandas.DataFrame
+            El DataFrame completo a dividir en splits
+        seed : int, opcional
+            Semilla para la aleatorización al barajar el DataFrame (por defecto es 42)
+        Returns
+        -------
+        dict           
+          Diccionario de dataframe: 'train', 'validation' y 'test' 
+        """        
         if (self.validation_size + self.test_size) >= 1.0:
             raise ValueError("La suma de validation_size y test_size debe ser menor que 1")
 
@@ -114,7 +203,7 @@ class DatasetGenerator:
         n_test = int(n * self.test_size)
         n_val = int(n * self.validation_size)
         
-        # Dividir usando slicing
+        # Dividir en splits
         test_df = df_shuffled.iloc[:n_test]
         val_df = df_shuffled.iloc[n_test : n_test + n_val]
         train_df = df_shuffled.iloc[n_test + n_val:]
@@ -126,6 +215,14 @@ class DatasetGenerator:
     }
 
     def __load_data(self):
+        """
+        Funcion auxiliar. Carga los datos desde la fuente especificada, conservando la cantidad de datos definida por el parámetro sampling 
+
+        Returns
+        -------
+        datasets.Dataset
+            Conjunto de datos cargado y reducido según el muestreo indicado
+        """
         ds = self.data_source
         # Conservar solo la columna 'text'
         ds = ds.remove_columns([col for col in ds.column_names if col != self.column_source])
@@ -144,6 +241,17 @@ class DatasetGenerator:
     - dict con keys 'train', 'validation', 'test' y valores como datasets preparados
     """
     def __prepare_datafr(self):
+        """
+        Orquesta la carga, preprocesamiento y preparación del dataset original para la generación de errores sintéticos.
+            - Carga el dataset desde la fuente especificada
+            - Normaliza y filtra las oraciones del corpus
+            - Prepara un DataFrame con las features necesarias para la anotación de errores
+            - Divide el DataFrame en splits de entrenamiento, validación y prueba
+        Returns
+        ----------
+        dict
+            Diccionario con los splits 'train', 'validation' y 'test' listos para la inyección de errores
+        """
         logging.info("Cargando conjunto de datos...")
         ds= self.__load_data()
         logging.info(f"Corpus cargado, tamaño: {len(ds)}")
@@ -160,6 +268,17 @@ class DatasetGenerator:
         return splits
 
     def generateErrors(self):
+        """
+        Orquesta la generación de errores sintéticos utilizando la clase ErrorGenerator para cada split del dataset preparado.
+            - Carga y prepara el dataset original
+            - Crea instancias de ErrorGenerator para cada split
+            - Inyecta errores en cada split 
+
+        Returns
+        -------
+        dict
+            Diccionario con los splits 'train', 'validation' y 'test' que contienen los datasets con errores inyectados
+        """
         dataset= self.__prepare_datafr()
         errorGenerator_train = ErrorGenerator(dataset['train'], self.nlp, error_rate=3)
         errorGenerator_validation = ErrorGenerator(dataset['validation'], self.nlp, error_rate=3)
@@ -176,13 +295,35 @@ class DatasetGenerator:
 
            
     def save_data_to_csv(self, datafr,split):
+        """
+        Guarda un DataFrame en formato CSV en la ruta especificada, eliminando columnas auxiliares antes de guardar
+        Parameters
+        ----------
+        datafr : pandas.DataFrame
+            El DataFrame a guardar en formato CSV
+        split : str
+            El nombre del split (train, validation o test) para nombrar el archivo CSV
+        """
         logging.info("Guardando conjunto de datos limpio")
         datafr.drop(['spaces','aux_corrupted_tagged'],axis=1, inplace=True)
         path_name=Path(f"{self.path_data}{self.name_dataset}_{split}.csv")
         datafr.to_csv(path_name, index=False)
         logging.info(f"Guardado en {path_name}")
 
-    def save_data_to_Dataset_HF(self, datafr,labels_name, dataset_name):
+
+    def save_data_to_Dataset_HF(self, datafr, labels_name, dataset_name):
+        """
+        Convierte los DataFrames de cada split en objetos Dataset de Hugging Face, especificando las características de las columnas y sube el dataset completo a Hugging Face bajo el nombre indicado
+        Parameters
+        ----------
+        datafr : dict
+            Diccionario con los splits
+        labels_name : list
+            Lista de nombres de etiquetas para la columna 'error_tags' que se definirá como ClassLabel
+        dataset_name : str
+            Nombre bajo el cual se guardará el dataset en Hugging Face
+
+        """
         error_labels = ClassLabel(names=labels_name)
         
         # Convertir cada dataframe a un Dataset
@@ -204,6 +345,15 @@ class DatasetGenerator:
 
 
     def plot_data(self, dataset_dict,nameFig):
+        """
+        Genera una gráfica de barras que muestra la distribución de tipos de errores en cada split del dataset.
+        Parameters
+        ----------
+        dataset_dict : dict
+            Diccionario con los splits del dataset
+        nameFig : str
+            Nombre del archivo PNG donde se guardará la gráfica generada
+        """
         all_data = []
 
         # Procesar cada split
@@ -219,7 +369,6 @@ class DatasetGenerator:
             errors_df['split'] = split  # Añadir el nombre del split
             print("Errors:",errors_df)
             all_data.append(errors_df)
-
         # Combinar todos los splits en un solo DataFrame
         final_df = pd.concat(all_data)
 
@@ -235,6 +384,14 @@ class DatasetGenerator:
 
 
     def run_pipeline(self):
+        """
+        Ejecuta todo el proceso de generación del dataset con errores sintéticos:
+            - Carga y prepara el dataset original
+            - Genera errores utilizando la clase ErrorGenerator para cada split
+            - Guarda los datasets generados en formato CSV
+            - Convierte y sube el dataset completo a Hugging Face
+            - Genera una gráfica con la distribución de tipos de errores
+        """
         labels_name = ['O','G-gen','G-nsing','G-nplur','G-verbForm','G-uArt','G-wo','P-missing', 'S-title', 'S-noAccent','S-mistake']
 
         data = self.generateErrors()
