@@ -1,7 +1,5 @@
 import logging
-
 import unidecode
-
 import spacy
 from spacy.matcher import Matcher
 from spacy.tokens import Doc
@@ -11,6 +9,19 @@ from . import constants as c
 from src.rules import RulesHandler 
 
 class ErrorGenerator:
+    """
+    Procesa lotes de texto para inyectar errores controlados, gestionando la actualización de etiquetas, anotaciones y la reconstrucción de oraciones corruptas en un dataFrame.
+
+    Parameters
+    ----------
+    datafr : pandas.DataFrame
+        Dataset que contiene el texto base para la inyección de errores
+    nlp : spacy.lang.Language
+        Modelo de procesamiento de lenguaje natural de spaCy
+    error_rate : int = 3
+        Número máximo de errores a inyectar por cada tipo de error en una oración.
+    """
+
     def __init__(self, datafr, nlp, error_rate=3):
         self.datafr = datafr
         self.error_rate = error_rate 
@@ -19,6 +30,16 @@ class ErrorGenerator:
     
 
     def __init_columns(self, idx, doc):
+        """
+        Inicializa las columnas para una fila específica del DataFrame, si esta aun no tiene errores inyectados
+
+        Parameters
+        ----------
+        idx : int
+            Índice de la fila en el DataFrame
+        doc : spacy.tokens.Doc
+            Texto procesado por spaCy del cual se extraen los datos iniciales
+        """
         if self.datafr['tokens'][idx]:
             return
         else:
@@ -30,40 +51,112 @@ class ErrorGenerator:
 
 
     def __get_k_tokens_candidates(self, tokens_candidates):
+            """
+            Selecciona una muestra aleatoria de tokens candidatos basándose en el error_rate
+
+            Parameters
+            ----------
+            tokens_candidates : list
+                Lista de tokens candidatos para ser corrompidos.
+
+            Returns
+            -------
+            list
+                Subconjunto de tokens seleccionados aleatoriamente.
+            """
             k = min(self.error_rate, len(tokens_candidates))
-            return random.sample(tokens_candidates, k=k)  # k = numero de tokens a tomar
+            return random.sample(tokens_candidates, k=k)  
         
 
     #Agrega el tipo de error, indices de la oracion donde se encuentra el error, y la modificacion realizada(error añadido)
     #agrega errores al conjunto de datos
     def __set_tagErrors(self, idx_data, span_ini, span_end, t_correct, t_error, tag):
+        """
+        Registra los metadatos del error inyectado en las columnas correspondientes
+
+        Actualiza el tipo de error, los índices de los caracteres (span) y la 
+        anotación (par error/corrección)
+
+        Parameters
+        ----------
+        idx_data : int
+            Índice de la fila
+        span_ini : int
+            Índice inicial del token/segmento afectado
+        span_end : int
+            Índice final del token/segmento afectado
+        t_correct : str
+            Texto original correcto
+        t_error : str
+            Texto modificado con el error
+        tag : str
+            Etiqueta del tipo de error 
+        """
         self.datafr['error_type'][idx_data].append(tag)
         self.datafr['span'][idx_data].append((span_ini, span_end))
         self.datafr['annotation'][idx_data].append((t_error, t_correct))
 
 
     def __set_columns_corrupted(self, idx_data):
+        """
+        Reconstruye y actualiza las columnas 'corrupted' y 'corrupted_tagged'del texto con errores
+
+        Parameters
+        ----------
+        idx_data : int
+            Índice de la fila a procesar
+        """
         try:
             self.datafr.loc[idx_data, 'corrupted'] = Doc(self.nlp.vocab, words=self.datafr['tokens'][idx_data], spaces=self.datafr['spaces'][idx_data]).text.strip()
             self.datafr.loc[idx_data, 'corrupted_tagged']= Doc(self.nlp.vocab, words= self.datafr['aux_corrupted_tagged'][idx_data], spaces=self.datafr['spaces'][idx_data]).text.strip()
         except Exception as e:
             print(f"Error al procesar el índice {idx_data} para corrupted_tagged: {e}")
-            #print(f"len tokens: {len(self.datafr['tokens'][idx_data])} len spaces: {len(self.datafr['spaces'][idx_data])}")
-            #print(f"Tokens: {self.datafr['tokens'][idx_data]}")
-            #print(f"Spaces: {self.datafr['spaces'][idx_data]}")
+            
 
 
     def __get_new_corrupted_tagged(self, idx_data, span_ini, span_text):
+        """
+        Actualiza un token que ya contiene una etiqueta de error previa
+
+        Parameters
+        ----------
+        idx_data : int
+            Índice de la fila
+        span_ini : int
+            Posición del token
+        span_text : list of str
+            Nuevo texto a insertar dentro de la etiqueta existente
+
+        Returns
+        -------
+        str
+            Cadena formateada con la etiqueta y el texto actualizado
+        """
         corrupted_tagged = self.datafr['aux_corrupted_tagged'][idx_data][span_ini]
         old = re.search(r"\s([^>]+)>", corrupted_tagged).group(1) # Extrae el texto original del formato "<TAG texto>"
         return corrupted_tagged.replace(old, " ".join(span_text))
 
 
     def __set_corrupted_tagged(self, idx_data, span_ini, span_end, span_text, tag):
+        """
+        Función auxiliar que gestiona la inserción de etiquetas de error en la columna auxiliar 'aux_corrupted_tagged. Aplica lógica especial para errores de orden de palabras y omisión (artículos/puntuación)
+
+        Parameters
+        ----------
+        idx_data : int
+            Índice de la fila
+        span_ini : int
+            Inicio del segmento afectado
+        span_end : int
+            Fin del segmento afectado
+        span_text : list of str
+            Texto o lista de textos corruptos
+        tag : str
+            Etiqueta del error
+        """
         if tag == c.ErrorTag.WORD_ORDER.label:
             self.datafr['aux_corrupted_tagged'][idx_data][span_ini:span_end]= list(self.datafr['aux_corrupted_tagged'][idx_data][span_ini:span_end])[::-1]
         else:
-            #content = self.datafr['aux_corrupted_tagged'][idx_data][span_ini]
             if self.datafr['error_tags'][idx_data][span_ini] != c.ErrorTag.NO_ERROR.id_num: # ya  tiene errores
                 span_text =self.__get_new_corrupted_tagged(idx_data, span_ini, span_text)                        
                 self.datafr['aux_corrupted_tagged'][idx_data][span_ini]= span_text  
@@ -78,23 +171,63 @@ class ErrorGenerator:
     
     
     def __update_error_tags_and_tokens(self, idx_data, span_ini, t_error,id_tag):
+        """
+        Actualiza el token modificado y agrega su ID de error en el DataFrame
+
+        Parameters
+        ----------
+        idx_data : int
+            Índice de la fila
+        span_ini : int
+            Posición del token a actualizar
+        t_error : str
+            Nuevo texto (con error)
+        id_tag : int
+            ID numérico del error
+        """
         self.datafr['error_tags'][idx_data][span_ini] = id_tag
         self.datafr['tokens'][idx_data][span_ini] = t_error 
 
 
     def __get_entities(self, doc):
+        """
+        Identifica los tokens que pertenecen a Entidades Nombradas (NER)
+
+        Parameters
+        ----------
+        doc : spacy.tokens.Doc
+            Texto procesado por spaCy
+
+        Returns
+        -------
+        set
+            Conjunto de entidades encontradas en el texto
+        """
         return set(tok.text for ent in doc.ents for tok in ent)
     
     #g/genre con articulos, pronombres  y las preposicion del ,de la 
     # se  verifica que el token sea articulo o pronombre, se modifica el token por su contrapuesto en las listas:
     # rt_pron_fem (de genero femenino) y rt_pron_masc (de genero masculino)
     def fill_errors_ggenre(self, batch_,id_ini):
+        """
+        Inyecta errores de género gramatical en un lote de oraciones
+
+        Busca determinantes y pronombres candidatos, verifica que no sean 
+        entidades nombradas y aplica la regla de intercambio de género.
+
+        Parameters
+        ----------
+        batch_ : list of str
+            Lista de oraciones originales.
+        id_ini : int
+            Índice inicial en el DataFrame para este lote.
+        """
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini    
         for doc in docs:
             self.__init_columns(idx_data, doc)
-            tokens_ents = self.__get_entities(doc) # se obtiene los tokens que forman parte de entidades nombradas para no generar errores en ellos
-            if self.datafr['corrupted'][idx_data]: #ya tiene errores generados, se parte del texto con errores para generar nuevos errores
+            tokens_ents = self.__get_entities(doc) 
+            if self.datafr['corrupted'][idx_data]:  #ya tiene errores generados, se parte del texto con errores para generar nuevos errores
                 doc= Doc(self.nlp.vocab, words=self.datafr['tokens'][idx_data], spaces=self.datafr['spaces'][idx_data] )
             # Se busca tokens candidatos
             tokens_candidates =[token for token in doc if token.pos_ in ['DET','PRON'] 
@@ -114,11 +247,23 @@ class ErrorGenerator:
         
     # se verifica que el token sea  un sustantivo singular, y si termina en una vocal, se o modifica, agregando una 's' al final de la palabra
     def fill_errors_gnumPlur(self, batch_, id_ini):
+        """
+        Inyecta errores de número plural en sustantivos y adjetivos singulares
+
+        Busca tokens con morfología singular, valida que no sean entidades y aplica reglas de pluralización 
+
+        Parameters
+        ----------
+        batch_ : list of str
+            Lote de oraciones a procesar
+        id_ini : int
+            Índice del DataFrame donde inicia la inyección de errores para este lote
+        """
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini        
         for doc in docs:
             self.__init_columns(idx_data, doc)
-            tokens_ents = self.__get_entities(doc) # se obtiene los tokens que forman parte de entidades nombradas para no generar errores en ellos
+            tokens_ents = self.__get_entities(doc) 
             
             if self.datafr['corrupted'][idx_data]: # se verifica si ya se tiene errores generados, si es asi ,entonces se toma los tokens generados, alguno ya puede tener algun error, entonce se agregara mas errores sopbre ese
                 doc= Doc(self.nlp.vocab, words=self.datafr['tokens'][idx_data], spaces=self.datafr['spaces'][idx_data] )
@@ -141,11 +286,23 @@ class ErrorGenerator:
     #g/number singular
     # se modifica los sustantivos y adjetivos plurales a su forma singular 
     def fill_errors_gnumSing(self, batch_, id_ini):
+        """
+        Inyecta errores de número singular en sustantivos y adjetivos plurales.
+
+        Identifica palabras en plural y las fuerza a su forma base (lema)
+
+        Parameters
+        ----------
+        batch_ : list of str
+            Lote de oraciones
+        id_ini : int
+            Índice del DataFrame donde inicia la inyección de errores para este lote
+        """
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini        
         for doc in docs:
             self.__init_columns(idx_data, doc)
-            tokens_ents = set(tok.text for ent in doc.ents for tok in ent)
+            tokens_ents = self.__get_entities(doc) 
             if self.datafr['corrupted'][idx_data]: # se verifica si ya se tiene errores generados, si es asi ,entonces se toma los tokens generados, alguno ya puede tener algun error, entonce se agregara mas errores sopbre ese
                 doc= Doc(self.nlp.vocab, words=self.datafr['tokens'][idx_data], spaces=self.datafr['spaces'][idx_data] )
 
@@ -168,16 +325,28 @@ class ErrorGenerator:
 
     #g/guart verifica si el token.morph PronType=='Art', es decir un articulo y lo remueve
     def fill_errors_guart(self, batch_, id_ini):
+        """
+        Induce errores por omisión de artículos en la oración.
+
+        Localiza tokens marcados como artículos (Art) y los remueve, ajustando además los espacios en blanco para mantener la coherencia visual
+
+        Parameters
+        ----------
+        batch_ : list of str
+            Lote de oraciones a procesar
+        id_ini : int
+            Índice del DataFrame donde inicia la inyección de errores para este lote
+        """
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         for doc in docs:
             self.__init_columns(idx_data, doc)
-            tokens_ents = set(tok.text for ent in doc.ents for tok in ent)
+            tokens_ents = self.__get_entities(doc) 
             idxs_error = [num for span in self.datafr['span'][idx_data] for num in span ]
             tokens_candidates =  [token for token in doc if 'Art' in token.morph.get('PronType')
                                                 and token.text not in tokens_ents 
                                                 and token.i+1 not in idxs_error 
-                                                and token.i-1 not in idxs_error] #tambien aseguramos que no se elimine si un indice anterior o posterior ya fue modificado
+                                                and token.i-1 not in idxs_error] #tambien aseguramos que no se elimine si un indice anterior o posterior si ya fue modificado
             if tokens_candidates:     
                 random_tokens = self.__get_k_tokens_candidates(tokens_candidates)  # tokens a tomar en cuenta               
                 for token in random_tokens:
@@ -198,13 +367,22 @@ class ErrorGenerator:
     #si el token es un verbo o verbo auxiliar, se lo convierte a su forma base, sin conjugaciones ni inflexiones
    
     def fill_errors_gverbForm(self, batch_,id_ini):
+        """
+        Inyecta errores de forma verbal convirtiendo verbos conjugados a su lema
+
+        Parameters
+        ----------
+        batch_ : list of str
+            Lote de oraciones originales.
+        id_ini : int
+            Índice de inicio en el DataFrame.
+        """
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         for doc in docs:
             #flag=1
-            tokens_ents = set(tok.text for ent in doc.ents for tok in ent)
+            tokens_ents = self.__get_entities(doc) 
             self.__init_columns(idx_data, doc)
-            tokens_ents = set(tok.text for ent in doc.ents for tok in ent)
             tokens_candidates = [token for token in doc if (token.pos_=="VERB" or token.pos_=="AUX")
                                                  and token.text not in tokens_ents ]
 
@@ -216,16 +394,7 @@ class ErrorGenerator:
                         self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, t_lemma, c.ErrorTag.VERB_FORM.label)
                         self.__set_corrupted_tagged(idx_data,token.i, token.i+1, [t_lemma], c.ErrorTag.VERB_FORM.label)
                         self.__update_error_tags_and_tokens(idx_data, token.i, t_lemma, c.ErrorTag.VERB_FORM.id_num)
-                        """ 
-                        try:
-                            self.datafr['error_tags'][idx][token.i]=c.ErrorTag.VERB_FORM.id_num
-                        except:
-                            print(f"idx: {idx}")
-                            print(f"idToken: {token.i}")
-                            print(f"lenErrTa::{len(self.datafr['error_tags'][idx])}")
-                            
-                        self.datafr['tokens'][idx][token.i] = t_lemma
-                        """             
+                               
                     else: continue
                 self.__set_columns_corrupted(idx_data)
             idx_data +=1
@@ -236,6 +405,19 @@ class ErrorGenerator:
     #se utiliza Matcher para encontrar las coincidencias respecto al orden de la palabras en la oracion (patterns_wo)
     #al encontrar los patrones definidos se modifica la oracion invietiendo el orden
     def fill_errors_ggword_order(self, batch_, id_ini):
+        """
+        Genera errores de orden de palabras mediante patrones POS.
+
+        Utiliza un Matcher para identificar estructuras sintácticas comunes 
+        (ej. Sustantivo + Adjetivo) e invierte el orden de los tokens detectados
+
+        Parameters
+        ----------
+        batch_ : list of str
+            Lote de oraciones a procesar
+        id_ini : int
+            Índice en el DataFrame para este lote
+        """
         docs = list(self.nlp.pipe(batch_))
         matcher = Matcher(self.nlp.vocab)
         idx_data = id_ini
@@ -244,7 +426,7 @@ class ErrorGenerator:
             matcher.add(f'wo_correct{i}', [pattern])
         for doc in docs:               
             self.__init_columns(idx_data, doc)
-            tokens_ents = set(tok.text for ent in doc.ents for tok in ent)
+            tokens_ents = self.__get_entities(doc) 
             all_idxs_matcher=[]
             for _, start, end in matcher(doc):  
                 t_correct = self.datafr['tokens'][idx_data][start:end] 
@@ -270,11 +452,24 @@ class ErrorGenerator:
     #Convierte el texto del token a formato título, 
     # donde la primera letra de cada palabra está en mayúscula y las demás en minúscula
     def fill_errors_stitle(self, batch_, id_ini):
+        """
+        Induce errores de capitalización (formato Título)
+
+        Selecciona tokens que no deberían llevar mayúscula inicial (fuera de entidades)
+        y los transforma a Title Case
+
+        Parameters
+        ----------
+        batch_ : list of str
+            Lote de oraciones 
+        id_ini : int
+            Índice del DataFrame para este lote
+        """
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         for doc in docs:             
             self.__init_columns(idx_data, doc)
-            tokens_ents = set(tok.text for ent in doc.ents for tok in ent)
+            tokens_ents = self.__get_entities(doc) 
             if self.datafr['corrupted'][idx_data]: # se verifica si ya se tiene errores generados, si es asi ,entonces se toma los tokens generados, alguno ya puede tener algun error, entonce se agregara mas errores sopbre ese
                 doc= Doc(self.nlp.vocab, words=self.datafr['tokens'][idx_data], spaces=self.datafr['spaces'][idx_data] )
 
@@ -298,11 +493,24 @@ class ErrorGenerator:
     # se usa unicode, para eliminar los acentos y caracteres especiales de una palabra, 
     # primeramente para encontrar palabras con tilde se usa el patron: pattern_accent
     def fill_errors_saccent(self, batch_, id_ini):
+        """
+        Induce errores de acentuación eliminando tildes de las palabras.
+
+        Utiliza expresiones regulares para identificar tokens que contienen 
+        caracteres acentuados y los reemplaza por su versión plana.
+
+        Parameters
+        ----------
+        batch_ : list of str
+            Lote de oraciones 
+        id_ini : int
+            Índice del DataFrame para este lote
+        """
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         for doc in docs: 
             self.__init_columns(idx_data, doc)
-            tokens_ents = set(tok.text for ent in doc.ents for tok in ent)
+            tokens_ents = self.__get_entities(doc) 
             if self.datafr['corrupted'][idx_data]: # se verifica si ya se tiene errores generados, si es asi ,entonces se toma los tokens generados, alguno ya puede tener algun error, entonce se agregara mas errores sopbre ese
                 doc= Doc(self.nlp.vocab, words=self.datafr['tokens'][idx_data], spaces=self.datafr['spaces'][idx_data] )
 
@@ -322,12 +530,25 @@ class ErrorGenerator:
     #s/ error_substitution
     ##se reemplaza la letra(key) por el correspondiente value in ['VERB','NOUN','ADJ']
     def fill_errors_smistake(self, batch_, id_ini):
+        """
+        Inyecta errores ortográficos fonéticos (sustitución de letras).
+
+        Busca palabras (sustantivos, verbos, adjetivos) que contengan caracteres 
+        susceptibles a confusión fonéticay aplica un reemplazo
+
+        Parameters
+        ----------
+        batch_ : list of str
+            Lote de oraciones a procesar
+        id_ini : int
+            Índice en el DataFrame para este lote
+        """
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         replacement_keys = list(c.PHONETIC_REPLACEMENTS.keys())
         for doc in docs: 
             self.__init_columns(idx_data, doc)
-            tokens_ents = set(tok.text for ent in doc.ents for tok in ent) 
+            tokens_ents = self.__get_entities(doc) 
             if self.datafr['corrupted'][idx_data]: # se verifica si ya se tiene errores generados, si es asi ,entonces se toma los tokens generados, alguno ya puede tener algun error, entonce se agregara mas errores sopbre ese
                 doc= Doc(self.nlp.vocab, words=self.datafr['tokens'][idx_data], spaces=self.datafr['spaces'][idx_data] )
             tokens_candidates = [token for token in doc if len(token.text)>3
@@ -341,14 +562,6 @@ class ErrorGenerator:
                     self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.SPELLING.label )
                     self.__set_corrupted_tagged(idx_data, token.i, token.i+1, [t_text], c.ErrorTag.SPELLING.label)
                     self.__update_error_tags_and_tokens(idx_data, token.i, t_text, c.ErrorTag.SPELLING.id_num)
-                    """                  
-                        try:
-                            self.datafr.loc[idx, 'corrupted'] = Doc(self.nlp.vocab, words=self.datafr['tokens'][idx], spaces=self.datafr['spaces'][idx]).text
-                        except:
-                            print(f"doc:{doc.text}")
-                            
-                    self.datafr.loc[idx, 'corrupted_tagged']= Doc(self.nlp.vocab, words= self.datafr['aux_corrupted_tagged'][idx], spaces=self.datafr['spaces'][idx]).text
-                    """
                 self.__set_columns_corrupted(idx_data)
             idx_data += 1
 
@@ -356,11 +569,24 @@ class ErrorGenerator:
     # errors punctuation 
     # se elimina el signo de puntuacion de la oracion
     def fill_errors_punctuation(self, batch_,id_ini):
+        """
+        Remueve signos de puntuación de las oraciones.
+
+        Identifica tokens de puntuación y los elimina, ajustando los espacios 
+        adyacentes para evitar espacios dobles o huérfanos
+
+        Parameters
+        ----------
+        batch_ : list of str
+            Lote de oraciones
+        id_ini : int
+            Índice inicial en el DataFrame para este lote
+        """
         docs = list(self.nlp.pipe(batch_))
         idx_data = id_ini
         for doc in docs:
             self.__init_columns(idx_data, doc)
-            tokens_ents = set(tok.text for ent in doc.ents for tok in ent)
+            tokens_ents = self.__get_entities(doc) 
             idxs_error = [num for span in self.datafr['span'][idx_data] for num in span]
             tokens_candidates = [token for token in doc if token.is_punct 
                                  and token.text not in tokens_ents 
@@ -381,6 +607,19 @@ class ErrorGenerator:
 
     #crea un arreglo con los indices de inicio y final de los batches para errores
     def __create_idx_batch_dataset(self, num_batches=21):
+        """
+        Divide el dataset en rangos de índices para procesamiento por lotes.
+
+        Parameters
+        ----------
+        num_batches : int, opcional
+            Número de particiones deseadas. Por defecto es 21
+
+        Returns
+        -------
+        list of list
+            Lista de pares [inicio, fin] para cada lote
+        """
         logging.info("Creando batches")
         tamaño_dataset = self.datafr.shape[0]
         tam_batch = tamaño_dataset // num_batches 
@@ -394,6 +633,17 @@ class ErrorGenerator:
 
     # generar errores en batches , recibe una lista de listas de indices de cada batch [ [idx_inicio_batch, idx_fin_batch],[ii,ij].[ii,ij]]
     def __generate_batches_with_errors(self, idx_batchs): 
+        """
+        Orquesta la inyección de errores individuales y combinados por batches.
+
+        Asigna cada batch del dataset a un tipo de error específico o a una 
+        combinación de múltiples errores 
+
+        Parameters
+        ----------
+        idx_batchs : list of list
+            Índices de inicio y fin para cada bloque del dataset
+        """
         logging.info("Generando errores")       
         
         self.fill_errors_ggenre(self.datafr['sentence'][idx_batchs[0][0]:idx_batchs[0][1]], idx_batchs[0][0])
@@ -411,7 +661,6 @@ class ErrorGenerator:
         self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[9][0]:idx_batchs[9][1]], idx_batchs[9][0])
         
         logging.info("Generando errores combinados")
-        # a partir de aqui se generan batches combinando errores
         self.fill_errors_ggenre(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
         self.fill_errors_gverbForm(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
         self.fill_errors_ggword_order(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
@@ -452,11 +701,30 @@ class ErrorGenerator:
     
     #limpiar dataset
     def clean_datafr(self):
+        """
+        Elimina filas del DataFrame que contienen valores nulos o vacíos
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame limpio y sin registros incompletos.
+        """
         df_no_empty = self.datafr[~self.datafr.map(lambda x: x is None or x == '' or (isinstance(x, list) and not x)).any(axis=1)]
         return df_no_empty 
     
     
     def inyect_data_errors(self):
+        """
+        Punto de entrada principal para generar el dataset corrupto completo.
+
+        Crea los lotes, inyecta los errores, limpia los datos nulos y 
+        realiza un barajado (shuffle) final del dataset.
+
+        Returns
+        -------
+        pandas.DataFrame
+            El nuevo dataset final procesado y listo para entrenamiento
+        """
         logging.info("Creando nuevo conjunto de datos")
         idx_batchs = self.__create_idx_batch_dataset(21) #crear 19 batches (10 errores individuales) 6 para errores combinados: gwo, guart, gverbForm 
         
