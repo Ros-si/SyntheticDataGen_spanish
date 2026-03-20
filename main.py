@@ -11,7 +11,7 @@ def main():
         "sampling": 0.00015,
         "min_string": 8,
         "max_string": 120,
-        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED_toTEST222",
+        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED_toTEST2222",
         "path_data": "./data/",
         "validation_size": 0.025,
         "test_size": 0.025,

@@ -19,7 +19,9 @@ class ErrorGenerator:
     nlp : spacy.lang.Language
         Modelo de procesamiento de lenguaje natural de spaCy
     error_rate : int = 3
-        Número máximo de errores a inyectar por cada tipo de error en una oración.
+        Número máximo de errores a inyectar por cada tipo de error en una oración
+    rules: RulesHandler
+        Manejador de reglas para la inyeccion de errores
     """
 
     def __init__(self, datafr, nlp, error_rate=3):
@@ -70,7 +72,7 @@ class ErrorGenerator:
 
     #Agrega el tipo de error, indices de la oracion donde se encuentra el error, y la modificacion realizada(error añadido)
     #agrega errores al conjunto de datos
-    def __set_tagErrors(self, idx_data, span_ini, span_end, t_correct, t_error, tag):
+    def __set_annotation_errors(self, idx_data, span_ini, span_end, t_correct, t_error, tag):
         """
         Registra los metadatos del error inyectado en las columnas correspondientes
 
@@ -97,7 +99,7 @@ class ErrorGenerator:
         self.datafr['annotation'][idx_data].append((t_error, t_correct))
 
 
-    def __set_columns_corrupted(self, idx_data):
+    def __update_version_corrupted(self, idx_data):
         """
         Reconstruye y actualiza las columnas 'corrupted' y 'corrupted_tagged'del texto con errores
 
@@ -137,7 +139,7 @@ class ErrorGenerator:
         return corrupted_tagged.replace(old, " ".join(span_text))
 
 
-    def __set_corrupted_tagged(self, idx_data, span_ini, span_end, span_text, tag):
+    def __update_aux_corrupted_tagged(self, idx_data, span_ini, span_end, span_text, tag):
         """
         Función auxiliar que gestiona la inserción de etiquetas de error en la columna auxiliar 'aux_corrupted_tagged. Aplica lógica especial para errores de orden de palabras y omisión (artículos/puntuación)
 
@@ -208,7 +210,7 @@ class ErrorGenerator:
     #g/genre con articulos, pronombres  y las preposicion del ,de la 
     # se  verifica que el token sea articulo o pronombre, se modifica el token por su contrapuesto en las listas:
     # rt_pron_fem (de genero femenino) y rt_pron_masc (de genero masculino)
-    def fill_errors_ggenre(self, batch_,id_ini):
+    def apply_errors_ggenre(self, batch_,id_ini):
         """
         Inyecta errores de género gramatical en un lote de oraciones
 
@@ -239,14 +241,14 @@ class ErrorGenerator:
                 random_tokens = self.__get_k_tokens_candidates(tokens_candidates)  # tokens a tomar en cuenta      
                 for token in random_tokens:         
                     t_text = self.rules.generate_error_genre(token)
-                    self.__set_tagErrors(idx_data, token.i , token.i+1, token.text, t_text, c.ErrorTag.GENDER.label)      
-                    self.__set_corrupted_tagged(idx_data, token.i, token.i+1, [t_text], c.ErrorTag.GENDER.label)  
+                    self.__set_annotation_errors(idx_data, token.i , token.i+1, token.text, t_text, c.ErrorTag.GENDER.label)      
+                    self.__update_aux_corrupted_tagged(idx_data, token.i, token.i+1, [t_text], c.ErrorTag.GENDER.label)  
                     self.__update_error_tags_and_tokens(idx_data, token.i, t_text, c.ErrorTag.GENDER.id_num)
-                self.__set_columns_corrupted(idx_data)
+                self.__update_version_corrupted(idx_data)
             idx_data +=1
         
     # se verifica que el token sea  un sustantivo singular, y si termina en una vocal, se o modifica, agregando una 's' al final de la palabra
-    def fill_errors_gnumPlur(self, batch_, id_ini):
+    def apply_errors_gnumPlur(self, batch_, id_ini):
         """
         Inyecta errores de número plural en sustantivos y adjetivos singulares
 
@@ -276,16 +278,16 @@ class ErrorGenerator:
                 for token in random_tokens:
                     t_text = self.rules.generate_error_gnumPlur(token)
                     if t_text:
-                        self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.NUM_PLUR.label )
-                        self.__set_corrupted_tagged(idx_data, token.i, token.i+1,[t_text], c.ErrorTag.NUM_PLUR.label)     
+                        self.__set_annotation_errors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.NUM_PLUR.label )
+                        self.__update_aux_corrupted_tagged(idx_data, token.i, token.i+1,[t_text], c.ErrorTag.NUM_PLUR.label)     
                         self.__update_error_tags_and_tokens(idx_data, token.i, t_text, c.ErrorTag.NUM_PLUR.id_num)
-                self.__set_columns_corrupted(idx_data)
+                self.__update_version_corrupted(idx_data)
             idx_data += 1
 
 
     #g/number singular
     # se modifica los sustantivos y adjetivos plurales a su forma singular 
-    def fill_errors_gnumSing(self, batch_, id_ini):
+    def apply_errors_gnumSing(self, batch_, id_ini):
         """
         Inyecta errores de número singular en sustantivos y adjetivos plurales.
 
@@ -314,17 +316,17 @@ class ErrorGenerator:
                 for token in random_tokens:
                     t_text = self.rules.generate_error_lemma(token)
                     if t_text:
-                        self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.NUM_SING.label )
-                        self.__set_corrupted_tagged(idx_data, token.i, token.i+1, [t_text], c.ErrorTag.NUM_SING.label)  
+                        self.__set_annotation_errors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.NUM_SING.label )
+                        self.__update_aux_corrupted_tagged(idx_data, token.i, token.i+1, [t_text], c.ErrorTag.NUM_SING.label)  
                         self.__update_error_tags_and_tokens(idx_data, token.i, t_text, c.ErrorTag.NUM_SING.id_num)
                     else: continue        
-                self.__set_columns_corrupted(idx_data)
+                self.__update_version_corrupted(idx_data)
             idx_data += 1
 
 
 
     #g/guart verifica si el token.morph PronType=='Art', es decir un articulo y lo remueve
-    def fill_errors_guart(self, batch_, id_ini):
+    def apply_errors_guart(self, batch_, id_ini):
         """
         Induce errores por omisión de artículos en la oración.
 
@@ -351,12 +353,12 @@ class ErrorGenerator:
                 random_tokens = self.__get_k_tokens_candidates(tokens_candidates)  # tokens a tomar en cuenta               
                 for token in random_tokens:
                     t_text = self.rules.generate_error_eliminate()
-                    self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.ART_MISSING.label )
-                    self.__set_corrupted_tagged(idx_data, token.i, token.i+1, [t_text], c.ErrorTag.ART_MISSING.label)     
+                    self.__set_annotation_errors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.ART_MISSING.label )
+                    self.__update_aux_corrupted_tagged(idx_data, token.i, token.i+1, [t_text], c.ErrorTag.ART_MISSING.label)     
                     self.__update_error_tags_and_tokens(idx_data, token.i, t_text, c.ErrorTag.ART_MISSING.id_num)             
                     self.datafr['spaces'][idx_data][token.i-1]=False
                     self.datafr['spaces'][idx_data][token.i]=False
-                self.__set_columns_corrupted(idx_data)
+                self.__update_version_corrupted(idx_data)
             idx_data += 1
 
 
@@ -366,7 +368,7 @@ class ErrorGenerator:
     #se verifica que la oracion no sea una entidad nombrada, 
     #si el token es un verbo o verbo auxiliar, se lo convierte a su forma base, sin conjugaciones ni inflexiones
    
-    def fill_errors_gverbForm(self, batch_,id_ini):
+    def apply_errors_gverbForm(self, batch_,id_ini):
         """
         Inyecta errores de forma verbal convirtiendo verbos conjugados a su lema
 
@@ -391,12 +393,12 @@ class ErrorGenerator:
                 for token in random_tokens:
                     t_lemma = self.rules.generate_error_lemma(token)
                     if t_lemma: 
-                        self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, t_lemma, c.ErrorTag.VERB_FORM.label)
-                        self.__set_corrupted_tagged(idx_data,token.i, token.i+1, [t_lemma], c.ErrorTag.VERB_FORM.label)
+                        self.__set_annotation_errors(idx_data, token.i, token.i+1, token.text, t_lemma, c.ErrorTag.VERB_FORM.label)
+                        self.__update_aux_corrupted_tagged(idx_data,token.i, token.i+1, [t_lemma], c.ErrorTag.VERB_FORM.label)
                         self.__update_error_tags_and_tokens(idx_data, token.i, t_lemma, c.ErrorTag.VERB_FORM.id_num)
                                
                     else: continue
-                self.__set_columns_corrupted(idx_data)
+                self.__update_version_corrupted(idx_data)
             idx_data +=1
     
 
@@ -404,7 +406,7 @@ class ErrorGenerator:
     #g/gwo 
     #se utiliza Matcher para encontrar las coincidencias respecto al orden de la palabras en la oracion (patterns_wo)
     #al encontrar los patrones definidos se modifica la oracion invietiendo el orden
-    def fill_errors_ggword_order(self, batch_, id_ini):
+    def apply_errors_ggword_order(self, batch_, id_ini):
         """
         Genera errores de orden de palabras mediante patrones POS.
 
@@ -438,12 +440,12 @@ class ErrorGenerator:
                 t_cc_reverse = self.rules.generate_error_ggword_order(t_correct)
                 text_correct = Doc(self.nlp.vocab, words=t_correct, spaces=t_correct_spaces)
                 t_error = Doc(self.nlp.vocab, words=t_cc_reverse, spaces=t_correct_spaces)         
-                self.__set_tagErrors(idx_data, start, end, text_correct.text, t_error.text, c.ErrorTag.WORD_ORDER.label)  
-                self.__set_corrupted_tagged(idx_data, start, end, t_cc_reverse, c.ErrorTag.WORD_ORDER.label)    
+                self.__set_annotation_errors(idx_data, start, end, text_correct.text, t_error.text, c.ErrorTag.WORD_ORDER.label)  
+                self.__update_aux_corrupted_tagged(idx_data, start, end, t_cc_reverse, c.ErrorTag.WORD_ORDER.label)    
                 self.datafr['tokens'][idx_data][start:end] = t_cc_reverse
                 self.datafr['error_tags'][idx_data][start:end]= [c.ErrorTag.WORD_ORDER.id_num]*(end-start)
                 
-            self.__set_columns_corrupted(idx_data)
+            self.__update_version_corrupted(idx_data)
             idx_data += 1 
 
         
@@ -451,7 +453,7 @@ class ErrorGenerator:
     #s/ generate_error_title 
     #Convierte el texto del token a formato título, 
     # donde la primera letra de cada palabra está en mayúscula y las demás en minúscula
-    def fill_errors_stitle(self, batch_, id_ini):
+    def apply_errors_stitle(self, batch_, id_ini):
         """
         Induce errores de capitalización (formato Título)
 
@@ -481,18 +483,18 @@ class ErrorGenerator:
                 for token in random_tokens:
                     word_title = self.rules.generate_error_title(token)
                     if word_title:                            
-                        self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, word_title, c.ErrorTag.TITLE.label )
-                        self.__set_corrupted_tagged(idx_data, token.i, token.i+1, [word_title], c.ErrorTag.TITLE.label)
+                        self.__set_annotation_errors(idx_data, token.i, token.i+1, token.text, word_title, c.ErrorTag.TITLE.label )
+                        self.__update_aux_corrupted_tagged(idx_data, token.i, token.i+1, [word_title], c.ErrorTag.TITLE.label)
                         self.__update_error_tags_and_tokens(idx_data, token.i, word_title, c.ErrorTag.TITLE.id_num)  
                     else: continue                        
-                self.__set_columns_corrupted(idx_data)
+                self.__update_version_corrupted(idx_data)
             idx_data += 1
                       
 
     #s/ generate_error_accent 
     # se usa unicode, para eliminar los acentos y caracteres especiales de una palabra, 
     # primeramente para encontrar palabras con tilde se usa el patron: pattern_accent
-    def fill_errors_saccent(self, batch_, id_ini):
+    def apply_errors_saccent(self, batch_, id_ini):
         """
         Induce errores de acentuación eliminando tildes de las palabras.
 
@@ -521,15 +523,15 @@ class ErrorGenerator:
                 random_tokens = self.__get_k_tokens_candidates(tokens_candidates)  # tokens a tomar en cuenta                
                 for token in random_tokens:
                     word = self.rules.generate_error_accent(token)
-                    self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, word, c.ErrorTag.ACCENT.label )
-                    self.__set_corrupted_tagged(idx_data, token.i, token.i+1, [word], c.ErrorTag.ACCENT.label)
+                    self.__set_annotation_errors(idx_data, token.i, token.i+1, token.text, word, c.ErrorTag.ACCENT.label )
+                    self.__update_aux_corrupted_tagged(idx_data, token.i, token.i+1, [word], c.ErrorTag.ACCENT.label)
                     self.__update_error_tags_and_tokens(idx_data, token.i, word, c.ErrorTag.ACCENT.id_num)
-                self.__set_columns_corrupted(idx_data)
+                self.__update_version_corrupted(idx_data)
             idx_data += 1
     
     #s/ error_substitution
     ##se reemplaza la letra(key) por el correspondiente value in ['VERB','NOUN','ADJ']
-    def fill_errors_smistake(self, batch_, id_ini):
+    def apply_errors_smistake(self, batch_, id_ini):
         """
         Inyecta errores ortográficos fonéticos (sustitución de letras).
 
@@ -559,16 +561,16 @@ class ErrorGenerator:
                 random_candidates = self.__get_k_tokens_candidates(tokens_candidates)  # tokens a tomar en cuenta      
                 for token in random_candidates:
                     t_text = self.rules.generate_spelling_mistake(token)
-                    self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.SPELLING.label )
-                    self.__set_corrupted_tagged(idx_data, token.i, token.i+1, [t_text], c.ErrorTag.SPELLING.label)
+                    self.__set_annotation_errors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.SPELLING.label )
+                    self.__update_aux_corrupted_tagged(idx_data, token.i, token.i+1, [t_text], c.ErrorTag.SPELLING.label)
                     self.__update_error_tags_and_tokens(idx_data, token.i, t_text, c.ErrorTag.SPELLING.id_num)
-                self.__set_columns_corrupted(idx_data)
+                self.__update_version_corrupted(idx_data)
             idx_data += 1
 
 
     # errors punctuation 
     # se elimina el signo de puntuacion de la oracion
-    def fill_errors_punctuation(self, batch_,id_ini):
+    def apply_errors_punctuation(self, batch_,id_ini):
         """
         Remueve signos de puntuación de las oraciones.
 
@@ -595,12 +597,12 @@ class ErrorGenerator:
                 random_tokens = self.__get_k_tokens_candidates(tokens_candidates)  # tokens a tomar en cuenta                
                 for token in random_tokens:
                     t_text = self.rules.generate_error_eliminate()
-                    self.__set_tagErrors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.PUNCT_MISSING.label )
-                    self.__set_corrupted_tagged(idx_data, token.i, token.i+1,[t_text], c.ErrorTag.PUNCT_MISSING.label) 
+                    self.__set_annotation_errors(idx_data, token.i, token.i+1, token.text, t_text, c.ErrorTag.PUNCT_MISSING.label )
+                    self.__update_aux_corrupted_tagged(idx_data, token.i, token.i+1,[t_text], c.ErrorTag.PUNCT_MISSING.label) 
                     self.__update_error_tags_and_tokens(idx_data, token.i, t_text, c.ErrorTag.PUNCT_MISSING.id_num)                    
                     self.datafr['spaces'][idx_data][token.i-1]=False
                     self.datafr['spaces'][idx_data][token.i]=False                                          
-                self.__set_columns_corrupted(idx_data)
+                self.__update_version_corrupted(idx_data)
             idx_data += 1
 
 
@@ -646,56 +648,56 @@ class ErrorGenerator:
         """
         logging.info("Generando errores")       
         
-        self.fill_errors_ggenre(self.datafr['sentence'][idx_batchs[0][0]:idx_batchs[0][1]], idx_batchs[0][0])
-        self.fill_errors_gnumSing(self.datafr['sentence'][idx_batchs[1][0]:idx_batchs[1][1]], idx_batchs[1][0])
-        self.fill_errors_gnumPlur(self.datafr['sentence'][idx_batchs[2][0]:idx_batchs[2][1]], idx_batchs[2][0])
+        self.apply_errors_ggenre(self.datafr['sentence'][idx_batchs[0][0]:idx_batchs[0][1]], idx_batchs[0][0])
+        self.apply_errors_gnumSing(self.datafr['sentence'][idx_batchs[1][0]:idx_batchs[1][1]], idx_batchs[1][0])
+        self.apply_errors_gnumPlur(self.datafr['sentence'][idx_batchs[2][0]:idx_batchs[2][1]], idx_batchs[2][0])
        
-        self.fill_errors_guart(self.datafr['sentence'][idx_batchs[3][0]:idx_batchs[3][1]], idx_batchs[3][0])
-        self.fill_errors_gverbForm(self.datafr['sentence'][idx_batchs[4][0]:idx_batchs[4][1]], idx_batchs[4][0])
+        self.apply_errors_guart(self.datafr['sentence'][idx_batchs[3][0]:idx_batchs[3][1]], idx_batchs[3][0])
+        self.apply_errors_gverbForm(self.datafr['sentence'][idx_batchs[4][0]:idx_batchs[4][1]], idx_batchs[4][0])
         
-        self.fill_errors_ggword_order(self.datafr['sentence'][idx_batchs[5][0]:idx_batchs[5][1]], idx_batchs[5][0])
+        self.apply_errors_ggword_order(self.datafr['sentence'][idx_batchs[5][0]:idx_batchs[5][1]], idx_batchs[5][0])
         
-        self.fill_errors_stitle(self.datafr['sentence'][idx_batchs[6][0]:idx_batchs[6][1]], idx_batchs[6][0])
-        self.fill_errors_saccent(self.datafr['sentence'][idx_batchs[7][0]:idx_batchs[7][1]], idx_batchs[7][0])
-        self.fill_errors_punctuation(self.datafr['sentence'][idx_batchs[8][0]:idx_batchs[8][1]], idx_batchs[8][0])
-        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[9][0]:idx_batchs[9][1]], idx_batchs[9][0])
+        self.apply_errors_stitle(self.datafr['sentence'][idx_batchs[6][0]:idx_batchs[6][1]], idx_batchs[6][0])
+        self.apply_errors_saccent(self.datafr['sentence'][idx_batchs[7][0]:idx_batchs[7][1]], idx_batchs[7][0])
+        self.apply_errors_punctuation(self.datafr['sentence'][idx_batchs[8][0]:idx_batchs[8][1]], idx_batchs[8][0])
+        self.apply_errors_smistake(self.datafr['sentence'][idx_batchs[9][0]:idx_batchs[9][1]], idx_batchs[9][0])
         
         logging.info("Generando errores combinados")
-        self.fill_errors_ggenre(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
-        self.fill_errors_gverbForm(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
-        self.fill_errors_ggword_order(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
+        self.apply_errors_ggenre(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
+        self.apply_errors_gverbForm(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
+        self.apply_errors_ggword_order(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
 
-        self.fill_errors_gnumSing(self.datafr['sentence'][idx_batchs[11][0]:idx_batchs[11][1]], idx_batchs[11][0])
-        self.fill_errors_gverbForm(self.datafr['sentence'][idx_batchs[11][0]:idx_batchs[11][1]], idx_batchs[11][0])
+        self.apply_errors_gnumSing(self.datafr['sentence'][idx_batchs[11][0]:idx_batchs[11][1]], idx_batchs[11][0])
+        self.apply_errors_gverbForm(self.datafr['sentence'][idx_batchs[11][0]:idx_batchs[11][1]], idx_batchs[11][0])
 
-        self.fill_errors_gnumPlur(self.datafr['sentence'][idx_batchs[12][0]:idx_batchs[12][1]], idx_batchs[12][0])
-        self.fill_errors_ggword_order(self.datafr['sentence'][idx_batchs[12][0]:idx_batchs[12][1]], idx_batchs[12][0])
+        self.apply_errors_gnumPlur(self.datafr['sentence'][idx_batchs[12][0]:idx_batchs[12][1]], idx_batchs[12][0])
+        self.apply_errors_ggword_order(self.datafr['sentence'][idx_batchs[12][0]:idx_batchs[12][1]], idx_batchs[12][0])
 
-        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[13][0]:idx_batchs[13][1]], idx_batchs[13][0])
-        self.fill_errors_gverbForm(self.datafr['sentence'][idx_batchs[13][0]:idx_batchs[13][1]], idx_batchs[13][0])
+        self.apply_errors_smistake(self.datafr['sentence'][idx_batchs[13][0]:idx_batchs[13][1]], idx_batchs[13][0])
+        self.apply_errors_gverbForm(self.datafr['sentence'][idx_batchs[13][0]:idx_batchs[13][1]], idx_batchs[13][0])
                 
-        self.fill_errors_guart(self.datafr['sentence'][idx_batchs[14][0]:idx_batchs[14][1]], idx_batchs[14][0])
+        self.apply_errors_guart(self.datafr['sentence'][idx_batchs[14][0]:idx_batchs[14][1]], idx_batchs[14][0])
         #self.__generate_error_g_verbForm(self.datafr['sentence'][idx_batchs[14][0]:idx_batchs[14][1]], idx_batchs[14][0])
-        self.fill_errors_ggword_order(self.datafr['sentence'][idx_batchs[14][0]:idx_batchs[14][1]], idx_batchs[14][0])
+        self.apply_errors_ggword_order(self.datafr['sentence'][idx_batchs[14][0]:idx_batchs[14][1]], idx_batchs[14][0])
 
-        self.fill_errors_punctuation(self.datafr['sentence'][idx_batchs[15][0]:idx_batchs[15][1]], idx_batchs[15][0])
-        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[15][0]:idx_batchs[15][1]], idx_batchs[15][0])
+        self.apply_errors_punctuation(self.datafr['sentence'][idx_batchs[15][0]:idx_batchs[15][1]], idx_batchs[15][0])
+        self.apply_errors_smistake(self.datafr['sentence'][idx_batchs[15][0]:idx_batchs[15][1]], idx_batchs[15][0])
 
-        self.fill_errors_gnumSing(self.datafr['sentence'][idx_batchs[16][0]:idx_batchs[16][1]], idx_batchs[16][0])
-        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[16][0]:idx_batchs[16][1]], idx_batchs[16][0])
+        self.apply_errors_gnumSing(self.datafr['sentence'][idx_batchs[16][0]:idx_batchs[16][1]], idx_batchs[16][0])
+        self.apply_errors_smistake(self.datafr['sentence'][idx_batchs[16][0]:idx_batchs[16][1]], idx_batchs[16][0])
 
-        self.fill_errors_gnumPlur(self.datafr['sentence'][idx_batchs[17][0]:idx_batchs[17][1]], idx_batchs[17][0])
-        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[17][0]:idx_batchs[17][1]], idx_batchs[17][0])
+        self.apply_errors_gnumPlur(self.datafr['sentence'][idx_batchs[17][0]:idx_batchs[17][1]], idx_batchs[17][0])
+        self.apply_errors_smistake(self.datafr['sentence'][idx_batchs[17][0]:idx_batchs[17][1]], idx_batchs[17][0])
 
-        self.fill_errors_guart(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
-        self.fill_errors_saccent(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
-        self.fill_errors_stitle(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
+        self.apply_errors_guart(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
+        self.apply_errors_saccent(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
+        self.apply_errors_stitle(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
 
-        self.fill_errors_ggenre(self.datafr['sentence'][idx_batchs[19][0]:idx_batchs[19][1]], idx_batchs[19][0])
-        self.fill_errors_gnumSing(self.datafr['sentence'][idx_batchs[19][0]:idx_batchs[19][1]], idx_batchs[19][0])
+        self.apply_errors_ggenre(self.datafr['sentence'][idx_batchs[19][0]:idx_batchs[19][1]], idx_batchs[19][0])
+        self.apply_errors_gnumSing(self.datafr['sentence'][idx_batchs[19][0]:idx_batchs[19][1]], idx_batchs[19][0])
 
-        self.fill_errors_saccent(self.datafr['sentence'][idx_batchs[20][0]:idx_batchs[20][1]], idx_batchs[20][0])
-        self.fill_errors_smistake(self.datafr['sentence'][idx_batchs[20][0]:idx_batchs[20][1]], idx_batchs[20][0])
+        self.apply_errors_saccent(self.datafr['sentence'][idx_batchs[20][0]:idx_batchs[20][1]], idx_batchs[20][0])
+        self.apply_errors_smistake(self.datafr['sentence'][idx_batchs[20][0]:idx_batchs[20][1]], idx_batchs[20][0])
 
 
     

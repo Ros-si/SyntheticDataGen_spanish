@@ -178,7 +178,7 @@ class RulesHandler:
     
     def generate_error_ggword_order(self, texts):
         """
-        Invierte el orden de los elementos en una secuencia
+        Invierte el orden de los elementos de una secuencia
 
         Parameters
         ----------
@@ -232,6 +232,7 @@ class RulesHandler:
         if token.is_title: 
             word=word.title()
         return word
+    
     
     def generate_spelling_mistake(self, token):
         """

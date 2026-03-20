@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from datasets import Dataset, ClassLabel, Sequence, DatasetDict
 from huggingface_hub import HfApi
 from pathlib import Path
-import os
+from .constants import ErrorTag
 from src.logger import logging
 
 class DatasetGenerator:
@@ -224,7 +224,7 @@ class DatasetGenerator:
             Conjunto de datos cargado y reducido según el muestreo indicado
         """
         ds = self.data_source
-        # Conservar solo la columna 'text'
+        # Conservar solo la columna definida en self.column_source
         ds = ds.remove_columns([col for col in ds.column_names if col != self.column_source])
         ds = ds.shuffle(seed=123)
         splits=ds.train_test_split(train_size=self.sampling, seed=42)
@@ -311,19 +311,15 @@ class DatasetGenerator:
         logging.info(f"Guardado en {path_name}")
 
 
-    def save_data_to_Dataset_HF(self, datafr, labels_name, dataset_name):
+    def save_data_to_Dataset_HF(self, datafr):
         """
         Convierte los DataFrames de cada split en objetos Dataset de Hugging Face, especificando las características de las columnas y sube el dataset completo a Hugging Face bajo el nombre indicado
         Parameters
         ----------
         datafr : dict
             Diccionario con los splits
-        labels_name : list
-            Lista de nombres de etiquetas para la columna 'error_tags' que se definirá como ClassLabel
-        dataset_name : str
-            Nombre bajo el cual se guardará el dataset en Hugging Face
-
         """
+        labels_name = [tag.label for tag in ErrorTag]
         error_labels = ClassLabel(names=labels_name)
         
         # Convertir cada dataframe a un Dataset
@@ -333,18 +329,15 @@ class DatasetGenerator:
         # Especificar que 'error_tags' es una secuencia de ClassLabels
         hf_dataset = hf_dataset.cast_column('error_tags', Sequence(feature=error_labels))
         print("DatasetHF:",hf_dataset)
-        #hf_dataset =hf_dataset.remove_columns(['span', 'annotation']) #'__index_level_0__']) #
-        
-        # Cargar tus credenciales de Hugging Face (esto lo hace automáticamente si ya configuraste el token)
+  
         api = HfApi()
-        # Subir el Dataset a Hugging Face (esto asume que ya creaste el dataset en Hugging Face)
-        api.create_repo(dataset_name, repo_type="dataset")
-        hf_dataset.push_to_hub(dataset_name)
-        logging.info(f"Dataset guardado en Hugging Face bajo el nombre: {dataset_name}")
+        api.create_repo(self.name_dataset, repo_type="dataset")
+        hf_dataset.push_to_hub(self.name_dataset)
+        logging.info(f"Dataset guardado en Hugging Face bajo el nombre: {self.name_dataset}")
         
 
 
-    def plot_data(self, dataset_dict,nameFig):
+    def plot_data(self, dataset_dict,name_fig):
         """
         Genera una gráfica de barras que muestra la distribución de tipos de errores en cada split del dataset.
         Parameters
@@ -380,27 +373,25 @@ class DatasetGenerator:
         plt.title('Distribución de Tipos de Errores por Split')
         plt.xticks(rotation=45)
         plt.tight_layout()
-        plt.savefig(f"{self.path_data}{nameFig}", bbox_inches='tight')
+        plt.savefig(f"{self.path_data}{name_fig}", bbox_inches='tight')
 
 
     def run_pipeline(self):
         """
         Ejecuta todo el proceso de generación del dataset con errores sintéticos:
             - Carga y prepara el dataset original
-            - Genera errores utilizando la clase ErrorGenerator para cada split
+            - Genera el nuevo conjunto de datos corrupto
             - Guarda los datasets generados en formato CSV
             - Convierte y sube el dataset completo a Hugging Face
             - Genera una gráfica con la distribución de tipos de errores
         """
-        labels_name = ['O','G-gen','G-nsing','G-nplur','G-verbForm','G-uArt','G-wo','P-missing', 'S-title', 'S-noAccent','S-mistake']
-
         data = self.generateErrors()
         
         self.save_data_to_csv(data['train'],'train')
         self.save_data_to_csv(data['validation'],'validation')
         self.save_data_to_csv(data['test'],'test')
 
-        self.save_data_to_Dataset_HF(data, labels_name, self.name_dataset)
+        self.save_data_to_Dataset_HF(data)
         self.plot_data(data,f"distribucion_De_Errores{self.name_dataset}.png")
         
 
