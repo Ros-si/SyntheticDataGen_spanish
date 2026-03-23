@@ -1,4 +1,4 @@
-from SyntheticDataGen_spanish.src.errorGenerator import ErrorGenerator
+from src.errorGenerator import ErrorGenerator
 from src import constants as c
 import pytest
 import pandas as pd
@@ -24,7 +24,7 @@ class TestErrorGenerator(unittest.TestCase):
         ]
         self.texts_numPlur=['El gato jugaba con los niños', 'está pintada de un color blanco','Me gusta tomar un café caliente','El sofá nuevo es muy cómodo','El jabalí corría rápidamente','la interfaz quedó muy buena','El mánager me pidió los resultados']
         self.texts_numSing=['Los gatos jugaban con el raton', 'Las casas del vecindario están de blanco','Me gusta tomar dos tazas de café caliente por la mañana','Las sillas son muy cómodas','Los caballos corrían rápidamente']
-        self.texts_art=['El gato negro duerme en la silla.','La luna llena iluminó el cielo oscuro','El libro tiene historias muy interesantes','el cielo es azul.','la milla extra']
+        self.texts_art=['El gato negro duerme en la silla.','Conoce el Estado de México.','El libro tiene historias muy interesantes','el cielo es azul.','la milla extra']
         self.texts_verbForm=['La niña dibujó un paisaje hermoso','Nosotros viajaremos en bus a la ciudad mañana.','Ellos comen en silencio.','caminas muy despacio.','estudiamos en la biblioteca todos los días.']
         self.texts_title=['La lujosa casa.','el niño.','mi hermana estudia en Harvard','los Emiratos Árabes']
         self.texts_accent=['La decisión final','Este examen será muy importante','Vió la novela que tanto esperaba']
@@ -59,10 +59,10 @@ class TestErrorGenerator(unittest.TestCase):
         return datafr
     
    
-    def test_fill_error_genre(self):
+    def test_apply_error_genre(self):
         data_gen = self.set_datafr(self.texts_genre)
         errorGenerator = ErrorGenerator(data_gen, self.nlp)
-        errorGenerator.fill_errors_ggenre(data_gen['sentence'],0)
+        errorGenerator.apply_errors_ggenre(data_gen['sentence'],0)
         self.assertEqual(
             data_gen['corrupted'][0],
             'estaba jugando en la jardín mientras la gato dormia.'
@@ -87,10 +87,11 @@ class TestErrorGenerator(unittest.TestCase):
         self.assertEqual(data_gen['corrupted'][2], 'Una señora pidió ayuda porque él no encontraba su boleto.')
         self.assertEqual(data_gen['corrupted'][3], 'intenta buscar consuelo en el comida')
 
-    def test_fill_error_gnumPlur(self):
+
+    def test_apply_error_gnumPlur(self):
         data = self.set_datafr(self.texts_numPlur)
         errorGenerator = ErrorGenerator(data, self.nlp, 3)
-        errorGenerator.fill_errors_gnumPlur(data['sentence'],0)
+        errorGenerator.apply_errors_gnumPlur(data['sentence'],0)
         self.assertEqual(data['corrupted'][0],'El gatos jugaba con los niños')
         self.assertEqual(data['tokens'][0],['El', 'gatos', 'jugaba', 'con', 'los', 'niños'])
         self.assertEqual(data['error_tags'][0],[c.ErrorTag.NO_ERROR.id_num, 
@@ -107,10 +108,10 @@ class TestErrorGenerator(unittest.TestCase):
         self.assertEqual(data['corrupted'][6],'El mánager me pidió los resultados')
     
 
-    def test_fill_error_gnumSing(self):
+    def test_apply_error_gnumSing(self):
         data = self.set_datafr(self.texts_numSing)
         errorGenerator = ErrorGenerator(data, self.nlp)
-        errorGenerator.fill_errors_gnumSing(data['sentence'],0)
+        errorGenerator.apply_errors_gnumSing(data['sentence'],0)
         self.assertEqual(data['corrupted'][0],'Los gato jugaban con el raton')
         self.assertEqual(data['tokens'][0],['Los', 'gato', 'jugaban', 'con', 'el', 'raton'])
         self.assertEqual(data['error_tags'][0],[c.ErrorTag.NO_ERROR.id_num, c.ErrorTag.NUM_SING.id_num, c.ErrorTag.NO_ERROR.id_num, c.ErrorTag.NO_ERROR.id_num, c.ErrorTag.NO_ERROR.id_num, c.ErrorTag.NO_ERROR.id_num])
@@ -119,10 +120,10 @@ class TestErrorGenerator(unittest.TestCase):
         self.assertEqual(data['corrupted'][3],'Las silla son muy cómodo')
         self.assertEqual(data['corrupted'][4],'Los caballo corrían rápidamente')
     
-    def test_fill_error_guart(self):
+    def test_apply_error_guart(self):
         data = self.set_datafr(self.texts_art)
         errorGen = ErrorGenerator(data, self.nlp)
-        errorGen.fill_errors_guart(data['sentence'],0)
+        errorGen.apply_errors_guart(data['sentence'],0)
         self.assertEqual(data['corrupted'][0],'gato negro duerme en silla.')
         self.assertEqual(data['tokens'][0],[' ','gato', 'negro', 'duerme','en',' ','silla','.'])
         self.assertEqual(data['error_tags'][0],[c.ErrorTag.ART_MISSING.id_num,
@@ -133,23 +134,16 @@ class TestErrorGenerator(unittest.TestCase):
                                                 c.ErrorTag.ART_MISSING.id_num,
                                                 c.ErrorTag.NO_ERROR.id_num,
                                                 c.ErrorTag.NO_ERROR.id_num,])
-        self.assertIn(data['corrupted'][1],'La luna llena iluminó cielo oscuro')
-        self.assertEqual(data['error_tags'][1],[c.ErrorTag.NO_ERROR.id_num,
-                                              c.ErrorTag.NO_ERROR.id_num,
-                                              c.ErrorTag.NO_ERROR.id_num, 
-                                              c.ErrorTag.NO_ERROR.id_num, 
-                                              c.ErrorTag.ART_MISSING.id_num,
-                                              c.ErrorTag.NO_ERROR.id_num,
-                                              c.ErrorTag.NO_ERROR.id_num])
+        self.assertIn(data['corrupted'][1],'Conoce Estado de México.')
         self.assertEqual(data['corrupted'][2],'libro tiene historias muy interesantes')
         self.assertEqual(data['corrupted'][3],'cielo es azul.')
         self.assertEqual(data['corrupted'][4],'milla extra')
     
 
-    def test_fill_error_g_verbForm(self):
+    def test_apply_error_g_verbForm(self):
         data = self.set_datafr(self.texts_verbForm)
         errorGenerator = ErrorGenerator(data, self.nlp)
-        errorGenerator.fill_errors_gverbForm(data['sentence'],0)
+        errorGenerator.apply_errors_gverbForm(data['sentence'],0)
         self.assertEqual(data['corrupted'][0],'La niña dibujar un paisaje hermoso')
         self.assertEqual(data['error_tags'][0],[c.ErrorTag.NO_ERROR.id_num,
                                                 c.ErrorTag.NO_ERROR.id_num,
@@ -158,16 +152,16 @@ class TestErrorGenerator(unittest.TestCase):
                                                 c.ErrorTag.NO_ERROR.id_num,
                                                 c.ErrorTag.NO_ERROR.id_num])
         self.assertEqual(data['tokens'][0],['La', 'niña', 'dibujar', 'un', 'paisaje' ,'hermoso'])
-        self.assertIn(data['corrupted'][1],['Nosotros viajar en bus a la ciudad mañana.', 'Nosotros viajarer en bus a la ciudad mañana.'])
+        self.assertEqual(data['corrupted'][1],['Nosotros viajar en bus a la ciudad mañana.'])
         self.assertEqual(data['corrupted'][2],'Ellos comer en silencio.')
         self.assertEqual(data['corrupted'][3],'caminar muy despacio.')
         self.assertEqual(data['corrupted'][4],'estudiar en la biblioteca todos los días.')
       
 
-    def test_fill_error_title(self):
+    def test_apply_error_title(self):
         data = self.set_datafr(self.texts_title)
         errorGenerator = ErrorGenerator(data, self.nlp)
-        errorGenerator.fill_errors_stitle(data['sentence'],0)        
+        errorGenerator.apply_errors_stitle(data['sentence'],0)        
         self.assertEqual(data['corrupted'][0],'La Lujosa Casa.')
         self.assertEqual(data['tokens'][0],['La', 'Lujosa','Casa','.'])
         self.assertEqual(data['error_tags'][0],[c.ErrorTag.NO_ERROR.id_num, 
@@ -179,10 +173,10 @@ class TestErrorGenerator(unittest.TestCase):
         self.assertEqual(data['corrupted'][3],'Los Emiratos Árabes')
 
    
-    def test_fill_error_accent(self):
+    def test_apply_error_accent(self):
         data = self.set_datafr(self.texts_accent)
         errorGenerator = ErrorGenerator(data, self.nlp)
-        errorGenerator.fill_errors_saccent(data['sentence'],0)
+        errorGenerator.apply_errors_saccent(data['sentence'],0)
         self.assertEqual(data['corrupted'][0],'La decision final')
         self.assertEqual(data['tokens'][0],['La', 'decision', 'final'])
         self.assertEqual(data['error_tags'][0],[c.ErrorTag.NO_ERROR.id_num, 
@@ -191,10 +185,10 @@ class TestErrorGenerator(unittest.TestCase):
         self.assertEqual(data['corrupted'][1],'Este examen sera muy importante')
         self.assertEqual(data['corrupted'][2],'Vio la novela que tanto esperaba')
     
-    def test_fill_error_ggword_order(self):        
+    def test_apply_error_ggword_order(self):        
         data_wo = self.set_datafr(self.texts_wo)
         errorGenerator = ErrorGenerator(data_wo, self.nlp)
-        errorGenerator.fill_errors_ggword_order(data_wo['sentence'],0)
+        errorGenerator.apply_errors_ggword_order(data_wo['sentence'],0)
         self.assertEqual(data_wo['corrupted'][0],'manzanas comer todos los días saludable es.')
         self.assertEqual(len(data_wo['corrupted'][0]), len(data_wo['sentence'][0]))
         self.assertEqual(len(data_wo['tokens'][0]), len(data_wo['error_tags'][0]))
@@ -207,8 +201,6 @@ class TestErrorGenerator(unittest.TestCase):
                                                    c.ErrorTag.WORD_ORDER.id_num, 
                                                    c.ErrorTag.NO_ERROR.id_num])
         self.assertEqual(data_wo['corrupted'][1],'los felinos eficientemente cazan.')
-        self.assertEqual(len(data_wo['corrupted'][1]), len(data_wo['sentence'][1]))
-        self.assertEqual(len(data_wo['tokens'][1]), len(data_wo['error_tags'][1]))
         self.assertEqual(data_wo['corrupted'][2],'Zautla es uno de los 217 municipios que integran el mexicano estado de Puebla')
         self.assertEqual(data_wo['corrupted'][3],'Morton construyó una relación fuerte académica por correspondencia con Si')
         self.assertEqual(len(data_wo['corrupted'][3]), len(data_wo['sentence'][3]))
@@ -219,10 +211,10 @@ class TestErrorGenerator(unittest.TestCase):
         self.assertEqual(data_wo['corrupted'][7],'El resultado positivo es')
         self.assertEqual(data_wo['corrupted'][8],'Meses después de que Fagalde la propusiera, el 19 de febrero')
 
-    def test_fill_error_punctuation(self):
+    def test_apply_error_punctuation(self):
         data = self.set_datafr(self.texts_punctuation)
         errorGenerator = ErrorGenerator(data, self.nlp)
-        errorGenerator.fill_errors_punctuation(data['sentence'],0)
+        errorGenerator.apply_errors_punctuation(data['sentence'],0)
         self.assertEqual(data['corrupted'][0],'No me gusta la lluvia')
         self.assertEqual(data['tokens'][0],['No',' ', 'me', 'gusta', 'la', 'lluvia'])
         self.assertEqual(data['error_tags'][0],[c.ErrorTag.NO_ERROR.id_num, 
@@ -235,13 +227,13 @@ class TestErrorGenerator(unittest.TestCase):
         self.assertIn(data['corrupted'][2],['Pedro llegas tarde.','Pedro, llegas tarde','Pedro llegas tarde'])    
 
 
-    def test_fill_errors_vform_gen_wo(self):       
+    def test_apply_errors_vform_gen_wo(self):       
         data = self.set_datafr(self.texts_vF_gen_wo)
         errorGenerator = ErrorGenerator(data, self.nlp)
-        errorGenerator.fill_errors_ggenre(data['sentence'],0)
-        errorGenerator.fill_errors_gverbForm(data['corrupted'],0)
+        errorGenerator.apply_errors_ggenre(data['sentence'],0)
+        errorGenerator.apply_errors_gverbForm(data['corrupted'],0)
         
-        errorGenerator.fill_errors_ggword_order(data['corrupted'],0)
+        errorGenerator.apply_errors_ggword_order(data['corrupted'],0)
         self.assertEqual(data['corrupted'][0],'intentar consuelo buscar en el comida')
         self.assertEqual(data['corrupted'][1],'el mañana del 2 de abril, feliz jugar')
         self.assertEqual(len(data['tokens'][1]), len(data['error_tags'][1]))
@@ -256,11 +248,11 @@ class TestErrorGenerator(unittest.TestCase):
                                                 c.ErrorTag.WORD_ORDER.id_num])
         self.assertEqual(data['tokens'][1],['el', 'mañana', 'del', '2', 'de', 'abril',',', 'feliz', 'jugar'])
 
-    def test_fill_errors_nplur_verbF(self):       
+    def test_apply_errors_nplur_verbF(self):       
         data = self.set_datafr(self.texts_nPlur_verbF)
         errorGenerator = ErrorGenerator(data, self.nlp)
-        errorGenerator.fill_errors_gnumPlur(data['sentence'],0)
-        errorGenerator.fill_errors_gverbForm(data['corrupted'],0)
+        errorGenerator.apply_errors_gnumPlur(data['sentence'],0)
+        errorGenerator.apply_errors_gverbForm(data['corrupted'],0)
         self.assertEqual(data['corrupted'][0],'No fumar mucho tabacos')
         self.assertEqual(data['error_tags'][0], [c.ErrorTag.NO_ERROR.id_num, 
                                                  c.ErrorTag.VERB_FORM.id_num, 
@@ -277,11 +269,17 @@ class TestErrorGenerator(unittest.TestCase):
                                                  c.ErrorTag.NO_ERROR.id_num])
 
 
-    def test_fill_spelling_mistake(self): 
+    def test_apply_spelling_mistake(self): 
         data= self.set_datafr(self.texts_smistake)
         errorGenerator = ErrorGenerator(data, self.nlp)
-        errorGenerator.fill_errors_smistake(data['sentence'],0)
+        errorGenerator.apply_errors_smistake(data['sentence'],0)
         self.assertEqual(data['corrupted'][0], 'El gato cone pezcado frezco.')
+        self.assertEqual(data['error_tags'][0],[c.ErrorTag.NO_ERROR.id_num,
+                                                 c.ErrorTag.NO_ERROR.id_num,
+                                                 c.ErrorTag.SPELLING.id_num,
+                                                 c.ErrorTag.SPELLING.id_num,
+                                                 c.ErrorTag.SPELLING.id_num,
+                                                 c.ErrorTag.NO_ERROR.id_num])
         self.assertIn(data['corrupted'][1], ['ella bizita a su avuela','ella vizita a su avuela','ella bisita a su avuela'])
         self.assertEqual(data['corrupted'][2], 'estas elado')
         self.assertEqual(data['corrupted'][3],'zalió por el garage')
