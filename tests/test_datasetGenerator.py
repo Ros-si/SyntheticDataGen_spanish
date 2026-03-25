@@ -19,9 +19,10 @@ class TestDatasetGenerator:
 
     def test_normalize_sentence(self, generator):
         """Verifica que la normalización NFKC funcione (ej. diéresis o caracteres combinados)."""
-        texto_sucio = "Héllò"
+        texto_sucio = "esta\u0301"
         normalizado = generator._DatasetGenerator__normalize_sentence(texto_sucio)
-        assert normalizado == unicodedata.normalize('NFKC', texto_sucio)
+        print(texto_sucio)
+        assert normalizado == "está"
 
     def test_divide_sentences(self, generator):
         """Prueba la división por saltos de línea simples y dobles."""
@@ -41,7 +42,8 @@ class TestDatasetGenerator:
         ]
         filtered = generator._DatasetGenerator__filter_sentences(sentences)
         assert len(filtered) == 2
-        assert "Tres palabras exactas" in filtered
+        assert sentences[1] in filtered
+        assert sentences[2] in filtered
 
     def test_filter_sentences_exclude_patterns(self, generator):
         """Verifica que elimine URLs y rutas de archivos."""

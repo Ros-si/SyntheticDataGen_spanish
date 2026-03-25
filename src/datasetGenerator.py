@@ -74,8 +74,7 @@ class DatasetGenerator:
 
     def __filter_sentences(self, sentences):
         """
-        Funcion auxiliar. Filtra oraciones excluyendo URLs, rutas de archivos y validando 
-        que la cantidad de palabras esté dentro del rango (min_string, max_string)
+        Funcion auxiliar. Filtra oraciones excluyendo URLs, rutas de archivos y validando que la cantidad de palabras esté dentro del rango (min_string, max_string)
         
         Parameters
         ----------
