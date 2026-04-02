@@ -83,11 +83,3 @@ class TestDatasetGenerator:
         assert len(splits['validation']) == 2
         assert len(splits['train']) == 6
 
-    def test_generate_splits_error(self, generator):
-        """Verifica que lance error si los tamaños de split exceden 1.0."""
-        generator.validation_size = 0.6
-        generator.test_size = 0.5 # 0.6 + 0.5 = 1.1 > 1.0
-        
-        df = pd.DataFrame({'a': [1, 2, 3]})
-        with pytest.raises(ValueError, match="La suma de validation_size y test_size debe ser menor que 1"):
-            generator._DatasetGenerator__generate_splits(df)

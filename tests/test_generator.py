@@ -152,7 +152,7 @@ class TestErrorGenerator(unittest.TestCase):
                                                 c.ErrorTag.NO_ERROR.id_num,
                                                 c.ErrorTag.NO_ERROR.id_num])
         self.assertEqual(data['tokens'][0],['La', 'niña', 'dibujar', 'un', 'paisaje' ,'hermoso'])
-        self.assertEqual(data['corrupted'][1],['Nosotros viajar en bus a la ciudad mañana.'])
+        self.assertEqual(data['corrupted'][1],'Nosotros viajar en bus a la ciudad mañana.')
         self.assertEqual(data['corrupted'][2],'Ellos comer en silencio.')
         self.assertEqual(data['corrupted'][3],'caminar muy despacio.')
         self.assertEqual(data['corrupted'][4],'estudiar en la biblioteca todos los días.')
@@ -231,8 +231,7 @@ class TestErrorGenerator(unittest.TestCase):
         data = self.set_datafr(self.texts_vF_gen_wo)
         errorGenerator = ErrorGenerator(data, self.nlp)
         errorGenerator.apply_errors_ggenre(data['sentence'],0)
-        errorGenerator.apply_errors_gverbForm(data['corrupted'],0)
-        
+        errorGenerator.apply_errors_gverbForm(data['corrupted'],0)        
         errorGenerator.apply_errors_ggword_order(data['corrupted'],0)
         self.assertEqual(data['corrupted'][0],'intentar consuelo buscar en el comida')
         self.assertEqual(data['corrupted'][1],'el mañana del 2 de abril, feliz jugar')
@@ -247,7 +246,9 @@ class TestErrorGenerator(unittest.TestCase):
                                                 c.ErrorTag.WORD_ORDER.id_num, 
                                                 c.ErrorTag.WORD_ORDER.id_num])
         self.assertEqual(data['tokens'][1],['el', 'mañana', 'del', '2', 'de', 'abril',',', 'feliz', 'jugar'])
+        self.assertEqual(data['corrupted_tagged'][1],'<G-gen el> mañana del 2 de abril, <G-wo feliz <G-verbForm jugar>>')
 
+    #EG-MIX-03y 04
     def test_apply_errors_nplur_verbF(self):       
         data = self.set_datafr(self.texts_nPlur_verbF)
         errorGenerator = ErrorGenerator(data, self.nlp)
@@ -259,6 +260,7 @@ class TestErrorGenerator(unittest.TestCase):
                                                  c.ErrorTag.NO_ERROR.id_num, 
                                                  c.ErrorTag.NUM_PLUR.id_num])
         self.assertEqual(len(data['tokens'][0]), len(data['error_tags'][0]))
+        self.assertEqual(data['corrupted_tagged'][0],'No <G-verbForm fumar> mucho <G-nPlur tabacos>')
         self.assertEqual(data['corrupted'][1],'Nuestra lámparas brillar mas en enero.')
         self.assertEqual(data['error_tags'][1], [c.ErrorTag.NO_ERROR.id_num, 
                                                  c.ErrorTag.NUM_PLUR.id_num, 
