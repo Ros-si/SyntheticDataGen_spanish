@@ -386,9 +386,9 @@ class DatasetGenerator:
         """
         data = self.generateErrors()
         
-        self.save_data_to_csv(data['train'],'train')
-        self.save_data_to_csv(data['validation'],'validation')
-        self.save_data_to_csv(data['test'],'test')
+        #self.save_data_to_csv(data['train'],'train')
+        #self.save_data_to_csv(data['validation'],'validation')
+        #self.save_data_to_csv(data['test'],'test')
 
         self.save_data_to_Dataset_HF(data)
         self.plot_data(data,f"distribucion_De_Errores{self.name_dataset}.png")
