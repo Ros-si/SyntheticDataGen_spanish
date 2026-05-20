@@ -8,13 +8,13 @@ def main():
     dataHF = load_dataset("wikimedia/wikipedia", "20231101.es", split="train")
     column_name = "text"
     config = {
-        "sampling": 0.01,
-        "min_string": 8,
+        "sampling": 0.001,
+        "min_string": 6,
         "max_string": 120,
-        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED",
+        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED_large",
         "path_data": "./data/",
-        "validation_size": 0.015,
-        "test_size": 0.015,
+        "validation_size": 0.01,
+        "test_size": 0.01,
         "nlp": nlp,
         "data_source":dataHF,
         "column_source":column_name
