@@ -48,7 +48,7 @@ La estructura del del dataset generado adopta el siguiente formato:
 | `annotation` | Lista de tuplas | Arreglo de duplas que indican la versión del texto con error y su contraparte correcta `(texto_corrupto, texto_correcto)`. |
 | `corrupted_tagged` | Texto (`str`) | Oración con errores, donde cada término erróneo se encuentra marcado inline con su tipo de error correspondiente bajo la estructura: `<TipoDeError errorPresente>`. |
 
-### 🔍 Ejemplos del Dataset
+### Ejemplos del Dataset
 
 A modo de ilustración, la siguiente tabla muestra cómo se estructuran y mapean internamente dos instancias procesadas por el pipeline de corrupción:
 
