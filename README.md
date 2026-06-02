@@ -120,14 +120,13 @@ El archivo main.py actúa como el orquestador del generador. El comportamiento d
 | `"data_source"` | `str` | **Dataset de origen:** Corpus/Dataset base, sobre el cual se realizará la inyección de errores. |
 | `"column_source"` | `str` | **Columna objetivo:** Nombre exacto de la columna dentro del dataset de origen que almacena el texto que va a recibir la inyección de errores. |
 
-**Ejemplo de configuración**:
+**Ejemplo de configuración**
 
-    ```bash
-    nlp = spacy.load("es_core_news_md")
-    dataHF = load_dataset("wikimedia/wikipedia", "20231101.es", split="train")
-    column_name = "text"
-
-    config = {
+   ```bash
+   nlp = spacy.load("es_core_news_md")
+   dataHF = load_dataset("wikimedia/wikipedia", "20231101.es", split="train")
+   column_name = "text"
+   config = {
         "sampling": 0.1,
         "min_string": 6,
         "max_string": 128,
@@ -139,13 +138,14 @@ El archivo main.py actúa como el orquestador del generador. El comportamiento d
         "data_source":dataHF,
         "column_source":column_name
         }
-    ```
+   ```
 
 ### Ejecución del Pipeline
 Una vez que configuradas las variables en el diccionario config dentro de main.py, se puede iniciar el proceso completo (ingesta, inyección probabilística de errores, segmentación de conjuntos de datos y exportación) ejecutando el script como un módulo desde la raíz del repositorio:
 
-    ```bash
-    python -m main
-    ```
+   ```bash
+   python -m main
+   ```
+
 > [!NOTE]
 > Es necesario la previa configuración de credenciales de Hugging Face (huggingface-cli login), ya que se realizará el push de manera directa al repositorio en el Hub.
