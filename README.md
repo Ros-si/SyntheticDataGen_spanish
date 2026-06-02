@@ -1,20 +1,20 @@
 # Synthetic Data Generator for Spanish GEC (Grammatical Error Correction)
 
-Este módulo es el motor de generación de datos sintéticos del proyecto principal. Su propósito fundamental es mitigar la escasez de datos de corpus paralelos para la tarea de Corrección de Errores Gramaticales en el idioma español, mediante la inyección probabilística y controlada de ruido lingüístico sobre textos limpios.
+Este módulo es el motor de generación de datos sintéticos. Su propósito fundamental es mitigar la escasez de datos de corpus paralelos para la tarea de Corrección de Errores Gramaticales en el idioma español, mediante la inyección de ruido lingüístico sobre textos limpios.
 
 Se utiliza un analizador gramatical para la creación de errores realistas de concordancia y sintaxis que emulan las fallas comunes de hablantes nativos y aprendices de una segunda lengua (L2).
 
-## Características Clave
-* **Análisis Gramatical con Reglas:** Identificación precisa de sustantivos, adjetivos y verbos para la manipulación morfológica estructurada.
-* **Preparación Avanzada para Modelos de Corrección y Detección:** El output no solo sirve para tareas *seq2seq* de corrección, sino que genera etiquetas de mapeo de tokens alineadas para entrenar modelos auxiliares de clasificación/detección de errores (Token Classification).
+## Características clave
+* **Análisis gramatical con reglas:** Identificación de sustantivos, adjetivos y verbos para la manipulación morfológica estructurada.
+* **Preparación para modelos de corrección y detección:** El output no solo sirve para tareas *seq2seq* de corrección, sino que genera etiquetas de mapeo de tokens alineadas para entrenar modelos auxiliares de clasificación/detección de errores (Token Classification).
 
 ---
 
-## 📊 Categorización de Errores
+## Categorización de errores
 
 Los tipos de errores que se generan son los siguientes:
 
-### Tipos de Errores Implementados
+### Tipos de errores implementados
 
 | Categoría | Etiqueta | Tipo de Error / Descripción |
 | :--- | :--- | :--- |
@@ -31,7 +31,7 @@ Los tipos de errores que se generan son los siguientes:
 
 ---
 
-## Estructura del Conjunto de Datos Corrupto
+## Estructura del conjunto de datos corrupto
 
 Las anotaciones presentan información complementaria a la corrección del texto, con el propósito de que puedan emplearse para verificar la posición y el tipo de error presente. Además, esto faculta al dataset para ser empleado en el entrenamiento de otros modelos orientados a la **detección de errores**.
 
@@ -48,7 +48,7 @@ La estructura del del dataset generado adopta el siguiente formato:
 | `annotation` | Lista de tuplas | Arreglo de duplas que indican la versión del texto con error y su contraparte correcta `(texto_corrupto, texto_correcto)`. |
 | `corrupted_tagged` | Texto (`str`) | Oración con errores, donde cada término erróneo se encuentra marcado inline con su tipo de error correspondiente bajo la estructura: `<TipoDeError errorPresente>`. |
 
-### 🔍 Ejemplos Prácticos del Dataset
+### 🔍 Ejemplos del Dataset
 
 A modo de ilustración, la siguiente tabla muestra cómo se estructuran y mapean internamente dos instancias procesadas por el pipeline de corrupción:
 
@@ -63,7 +63,7 @@ A modo de ilustración, la siguiente tabla muestra cómo se estructuran y mapean
 | `annotation` | `[('las', 'los')]` | `[('emulador', 'emuladores'), ('dispositivo', 'dispositivos')]` |
 | `corrupted_tagged` | Futbolistas del Club Atlético Peñarol en `<G-gen las>` años 1940 | Varios `<G-nSing emulador>` para los `<G-nSing dispositivo>` de entrada y salida. |
 
-### Identificación Numérica de Errores (`error_tags`)
+### Identificación mumérica de errores (`error_tags`)
 
 Para facilitar el entrenamiento de tareas de clasificación de tokens, los identificadores numéricos asignados dentro del arreglo `error_tags` corresponden a la siguiente matriz de mapeo:
 
@@ -82,7 +82,7 @@ Para facilitar el entrenamiento de tareas de clasificación de tokens, los ident
 | **10** | Ortográfico: error ortográfico fonético (`S-mistake`) |
 
 ---
-## Requisitos e Instalación
+## Requisitos e instalación
 
 Este módulo está desarrollado y probado en entornos de **Python 3.13**. Sigue estos pasos para configurar tu entorno local:
 
@@ -102,10 +102,10 @@ Para permitir que el script guarde de forma automática el dataset generado dire
    ```bash
    huggingface-cli login
    ```
-## Generación del Nuevo Conjunto de Datos
+## Generación del nuevo conjunto de datos
 El archivo main.py actúa como el orquestador del generador. El comportamiento del algoritmo de inyección se parametriza a través del diccionario config dentro del script.
 
-### Parámetros de Configuración
+### Parámetros de configuración
 
 | Clave / Parámetro | Tipo | Descripción |
 | :--- | :---: | :--- |
@@ -121,7 +121,7 @@ El archivo main.py actúa como el orquestador del generador. El comportamiento d
 | `"column_source"` | `str` | **Columna objetivo:** Nombre exacto de la columna dentro del dataset de origen que almacena el texto que va a recibir la inyección de errores. |
 
 **Ejemplo de configuración**:
-    ´´´bash
+    ```bash
     nlp = spacy.load("es_core_news_md")
     dataHF = load_dataset("wikimedia/wikipedia", "20231101.es", split="train")
     column_name = "text"
@@ -138,13 +138,12 @@ El archivo main.py actúa como el orquestador del generador. El comportamiento d
         "data_source":dataHF,
         "column_source":column_name
     }
-    ´´´ 
+    ```
 
 ### Ejecución del Pipeline
-
 Una vez que configuradas las variables en el diccionario config dentro de main.py, se puede iniciar el proceso completo (ingesta, inyección probabilística de errores, segmentación de conjuntos de datos y exportación) ejecutando el script como un módulo desde la raíz del repositorio:
-    ´´´bash
+    ```bash
     python -m main
-    ´´´
-**Nota**
-Es necesario la previa configuración de credenciales de Hugging Face (huggingface-cli login), ya que se realizará el push de manera directa al repositorio en el Hub.
+    ```
+> [!NOTE]
+> Es necesario la previa configuración de credenciales de Hugging Face (huggingface-cli login), ya que se realizará el push de manera directa al repositorio en el Hub.
