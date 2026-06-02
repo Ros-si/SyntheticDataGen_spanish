@@ -121,6 +121,7 @@ El archivo main.py actúa como el orquestador del generador. El comportamiento d
 | `"column_source"` | `str` | **Columna objetivo:** Nombre exacto de la columna dentro del dataset de origen que almacena el texto que va a recibir la inyección de errores. |
 
 **Ejemplo de configuración**:
+
     ```bash
     nlp = spacy.load("es_core_news_md")
     dataHF = load_dataset("wikimedia/wikipedia", "20231101.es", split="train")
@@ -137,11 +138,12 @@ El archivo main.py actúa como el orquestador del generador. El comportamiento d
         "nlp": nlp,
         "data_source":dataHF,
         "column_source":column_name
-    }
+        }
     ```
 
 ### Ejecución del Pipeline
 Una vez que configuradas las variables en el diccionario config dentro de main.py, se puede iniciar el proceso completo (ingesta, inyección probabilística de errores, segmentación de conjuntos de datos y exportación) ejecutando el script como un módulo desde la raíz del repositorio:
+
     ```bash
     python -m main
     ```
