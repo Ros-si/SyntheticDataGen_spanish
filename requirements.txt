@@ -1,0 +1,10 @@
+spacy==3.8.11
+pandas>=3.0.1
+huggingface_hub>= 1.5.0
+datasets>=4.6.1
+silabeador>=1.2.1
+seaborn>=0.13.2
+unidecode>=1.4.0
+pytest>=9.0.2
+matplotlib>=3.10.8
+https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.8.0/es_core_news_md-3.8.0.tar.gz
