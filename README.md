@@ -141,7 +141,7 @@ El archivo main.py actúa como el orquestador del generador. El comportamiento d
    ```
 
 ### Ejecución del Pipeline
-Una vez que configuradas las variables en el diccionario config dentro de main.py, se puede iniciar el proceso completo (ingesta, inyección probabilística de errores, segmentación de conjuntos de datos y exportación) ejecutando el script como un módulo desde la raíz del repositorio:
+Una vez que configuradas las variables en el diccionario config dentro de main.py, se puede iniciar el proceso completo (ingesta, inyección de errores, segmentación de conjuntos de datos y exportación) ejecutando el script como un módulo desde la raíz del repositorio:
 
    ```bash
    python -m main
