@@ -266,7 +266,7 @@ class DatasetGenerator:
 
         return splits
 
-    def generateErrors(self):
+    def generateErrors(self, error_rate):
         """
         Orquesta la generación de errores sintéticos utilizando la clase ErrorGenerator para cada split del dataset preparado.
             - Carga y prepara el dataset original
@@ -279,9 +279,9 @@ class DatasetGenerator:
             Diccionario con los splits 'train', 'validation' y 'test' que contienen los datasets con errores inyectados
         """
         dataset= self.__prepare_datafr()
-        errorGenerator_train = ErrorGenerator(dataset['train'], self.nlp, error_rate=3)
-        errorGenerator_validation = ErrorGenerator(dataset['validation'], self.nlp, error_rate=3)
-        errorGenerator_test = ErrorGenerator(dataset['test'], self.nlp, error_rate=3)
+        errorGenerator_train = ErrorGenerator(dataset['train'], self.nlp, error_rate=error_rate)
+        errorGenerator_validation = ErrorGenerator(dataset['validation'], self.nlp, error_rate=error_rate)
+        errorGenerator_test = ErrorGenerator(dataset['test'], self.nlp, error_rate=error_rate)
 
         datafr_errors_train = errorGenerator_train.inyect_data_errors()
         datafr_errors_validation= errorGenerator_validation.inyect_data_errors()
@@ -375,7 +375,7 @@ class DatasetGenerator:
         plt.savefig(f"{self.path_data}{name_fig}", bbox_inches='tight')
 
 
-    def run_pipeline(self):
+    def run_pipeline(self, error_rate):
         """
         Ejecuta todo el proceso de generación del dataset con errores sintéticos:
             - Carga y prepara el dataset original
@@ -384,7 +384,7 @@ class DatasetGenerator:
             - Convierte y sube el dataset completo a Hugging Face
             - Genera una gráfica con la distribución de tipos de errores
         """
-        data = self.generateErrors()
+        data = self.generateErrors(error_rate)
         
         #self.save_data_to_csv(data['train'],'train')
         #self.save_data_to_csv(data['validation'],'validation')
