@@ -287,10 +287,26 @@ class DatasetGenerator:
         datafr_errors_validation= errorGenerator_validation.inyect_data_errors()
         datafr_errors_test = errorGenerator_test.inyect_data_errors()
         return {
-            'train':datafr_errors_train,
-            'validation':datafr_errors_validation,
-            'test':datafr_errors_test
+            'train':self.clean_data(datafr_errors_train),
+            'validation':self.clean_data(datafr_errors_validation),
+            'test':self.clean_data(datafr_errors_test)
         }    
+    
+    def clean_data(self, datafr):
+        """
+        Limpia el DataFrame eliminando columnas auxiliares utilizadas durante la generación de errores.
+        
+        Parameters
+        ----------
+        datafr : pandas.DataFrame
+            El DataFrame a limpiar
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame limpio sin las columnas auxiliares
+        """
+        datafr.drop(['spaces','aux_corrupted_tagged'],axis=1, inplace=True)
+        return datafr
 
            
     def save_data_to_csv(self, datafr,split):
@@ -304,7 +320,7 @@ class DatasetGenerator:
             El nombre del split (train, validation o test) para nombrar el archivo CSV
         """
         logging.info("Guardando conjunto de datos limpio")
-        datafr.drop(['spaces','aux_corrupted_tagged'],axis=1, inplace=True)
+        
         path_name=Path(f"{self.path_data}{self.name_dataset}_{split}.csv")
         datafr.to_csv(path_name, index=False)
         logging.info(f"Guardado en {path_name}")
@@ -373,6 +389,7 @@ class DatasetGenerator:
         plt.xticks(rotation=45)
         plt.tight_layout()
         plt.savefig(f"{self.path_data}{name_fig}", bbox_inches='tight')
+        plt.close()
 
 
     def run_pipeline(self, error_rate):
