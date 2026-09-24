@@ -7,15 +7,15 @@ def main():
     nlp = spacy.load("es_core_news_md")
     dataHF = load_dataset("wikimedia/wikipedia", "20231101.es", split="train")
     column_name = "text"
-    error_rate = 5 
+    error_rate = 3 
     config = {
-        "sampling": 0.025,
-        "min_string": 6,
-        "max_string": 128,
-        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED_L",
+        "sampling": 0.00025,
+        "min_string": 8,
+        "max_string": 120,
+        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED_mini",
         "path_data": "./data/",
-        "validation_size": 0.005,
-        "test_size": 0.005,
+        "validation_size": 0.20,
+        "test_size": 0.20,
         "nlp": nlp,
         "data_source":dataHF,
         "column_source":column_name
