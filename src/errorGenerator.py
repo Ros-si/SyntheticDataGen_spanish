@@ -633,7 +633,7 @@ class ErrorGenerator:
         return idx_batchs
     
 
-    # generar errores en batches , recibe una lista de listas de indices de cada batch [ [idx_inicio_batch, idx_fin_batch],[ii,ij].[ii,ij]]
+    # generar errores en batches, recibe una lista de listas de indices de cada batch [ [idx_inicio_batch, idx_fin_batch],[ii,ij].[ii,ij]]
     def __generate_batches_with_errors(self, idx_batchs): 
         """
         Orquesta la inyección de errores individuales y combinados por batches.
@@ -677,7 +677,6 @@ class ErrorGenerator:
         self.apply_errors_gverbForm(self.datafr['sentence'][idx_batchs[13][0]:idx_batchs[13][1]], idx_batchs[13][0])
                 
         self.apply_errors_guart(self.datafr['sentence'][idx_batchs[14][0]:idx_batchs[14][1]], idx_batchs[14][0])
-        #self.__generate_error_g_verbForm(self.datafr['sentence'][idx_batchs[14][0]:idx_batchs[14][1]], idx_batchs[14][0])
         self.apply_errors_ggword_order(self.datafr['sentence'][idx_batchs[14][0]:idx_batchs[14][1]], idx_batchs[14][0])
 
         self.apply_errors_punctuation(self.datafr['sentence'][idx_batchs[15][0]:idx_batchs[15][1]], idx_batchs[15][0])
@@ -699,8 +698,7 @@ class ErrorGenerator:
         self.apply_errors_saccent(self.datafr['sentence'][idx_batchs[20][0]:idx_batchs[20][1]], idx_batchs[20][0])
         self.apply_errors_smistake(self.datafr['sentence'][idx_batchs[20][0]:idx_batchs[20][1]], idx_batchs[20][0])
 
-
-    
+   
     #limpiar dataset
     def clean_datafr(self):
         """
