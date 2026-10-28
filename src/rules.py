@@ -77,13 +77,16 @@ class RulesHandler:
         elif token[-3:] == 'iés':
             return new_token
         else:
-            syllables = silabeador.Syllabification(token)
-            n=len(syllables.syllables)
-            if syllables.stress ==-1: #es aguda
-                new_token = unidecode(token)
+            try:
+                syllables = silabeador.Syllabification(token)
+                n=len(syllables.syllables)
+                if syllables.stress ==-1: #es aguda
+                    new_token = unidecode(token)
+                    return new_token+'es'
+                elif n>3 or n ==1:
+                    return new_token+'es'       
+            except Exception: 
                 return new_token+'es'
-            elif n>3 or n ==1:
-                return new_token+'es'        
         return new_token
     
     #Sustantivos y adjetivos terminados en -l, -r, -n, -d, -z, -j. 
@@ -106,13 +109,19 @@ class RulesHandler:
             Forma pluralizada del token según las reglas definidas
         """
         new_token=token
+        if not token:
+            return token
         if token[-1]=='z':
             return new_token[:-1]+'ces'
         elif token[-1] in ['l','r','n','d','j'] and c.PATTERN_ENDVOCAL.match(token[:-1]):
-            syllables = silabeador.Syllabification(token)
-            if syllables.stress ==-3: #esdrújulas-> invariable
-                return new_token
-            else:return new_token+'es'
+            try:
+                syllables = silabeador.Syllabification(token)
+                if syllables.stress ==-3: #esdrújulas-> invariable
+                    return new_token
+            except Exception:
+                # Si silabeador falla por un token atípico, fallback a agregar 'es'
+                pass
+            return new_token+'es'
         return token
     
     def generate_error_gnumPlur(self, token):
