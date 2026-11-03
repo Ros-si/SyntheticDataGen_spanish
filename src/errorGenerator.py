@@ -669,6 +669,7 @@ class ErrorGenerator:
 
         self.apply_errors_gnumSing(self.datafr['sentence'][idx_batchs[11][0]:idx_batchs[11][1]], idx_batchs[11][0])
         self.apply_errors_gverbForm(self.datafr['sentence'][idx_batchs[11][0]:idx_batchs[11][1]], idx_batchs[11][0])
+        self.apply_errors_smistake(self.datafr['sentence'][idx_batchs[11][0]:idx_batchs[11][1]], idx_batchs[11][0])
 
         self.apply_errors_gnumPlur(self.datafr['sentence'][idx_batchs[12][0]:idx_batchs[12][1]], idx_batchs[12][0])
         self.apply_errors_ggword_order(self.datafr['sentence'][idx_batchs[12][0]:idx_batchs[12][1]], idx_batchs[12][0])
@@ -683,13 +684,13 @@ class ErrorGenerator:
         self.apply_errors_gverbForm(self.datafr['sentence'][idx_batchs[15][0]:idx_batchs[15][1]], idx_batchs[15][0]) #
 
         self.apply_errors_gnumSing(self.datafr['sentence'][idx_batchs[16][0]:idx_batchs[16][1]], idx_batchs[16][0])
-        self.apply_errors_smistake(self.datafr['sentence'][idx_batchs[16][0]:idx_batchs[16][1]], idx_batchs[16][0])
+        self.apply_errors_guart(self.datafr['sentence'][idx_batchs[16][0]:idx_batchs[16][1]], idx_batchs[16][0])
 
         self.apply_errors_gnumPlur(self.datafr['sentence'][idx_batchs[17][0]:idx_batchs[17][1]], idx_batchs[17][0])
-        self.apply_errors_smistake(self.datafr['sentence'][idx_batchs[17][0]:idx_batchs[17][1]], idx_batchs[17][0])
+        self.apply_errors_guart(self.datafr['sentence'][idx_batchs[17][0]:idx_batchs[17][1]], idx_batchs[17][0])
 
         self.apply_errors_guart(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
-        self.apply_errors_saccent(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
+        self.apply_errors_gverbForm(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
         self.apply_errors_stitle(self.datafr['sentence'][idx_batchs[18][0]:idx_batchs[18][1]], idx_batchs[18][0])
 
         self.apply_errors_ggenre(self.datafr['sentence'][idx_batchs[19][0]:idx_batchs[19][1]], idx_batchs[19][0])
