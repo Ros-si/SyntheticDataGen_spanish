@@ -12,7 +12,7 @@ def main():
         "sampling": 0.0114,
         "min_string": 6,
         "max_string": 128,
-        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED_Def",
+        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED_v2",
         "path_data": "./data/",
         "validation_size": 0.01,
         "test_size": 0.01,
