@@ -658,9 +658,15 @@ class ErrorGenerator:
         self.apply_errors_ggword_order(self.datafr['sentence'][idx_batchs[5][0]:idx_batchs[5][1]], idx_batchs[5][0])
         
         self.apply_errors_stitle(self.datafr['sentence'][idx_batchs[6][0]:idx_batchs[6][1]], idx_batchs[6][0])
-        self.apply_errors_saccent(self.datafr['sentence'][idx_batchs[7][0]:idx_batchs[7][1]], idx_batchs[7][0])
-        self.apply_errors_punctuation(self.datafr['sentence'][idx_batchs[8][0]:idx_batchs[8][1]], idx_batchs[8][0])
-        self.apply_errors_smistake(self.datafr['sentence'][idx_batchs[9][0]:idx_batchs[9][1]], idx_batchs[9][0])
+
+        self.apply_errors_gnumPlur(self.datafr['sentence'][idx_batchs[7][0]:idx_batchs[7][1]], idx_batchs[7][0])
+        self.apply_errors_gverbForm(self.datafr['sentence'][idx_batchs[7][0]:idx_batchs[7][1]], idx_batchs[7][0])
+
+        self.apply_errors_ggenre(self.datafr['sentence'][idx_batchs[8][0]:idx_batchs[8][1]], idx_batchs[8][0])
+        self.apply_errors_gnumPlur(self.datafr['sentence'][idx_batchs[8][0]:idx_batchs[8][1]], idx_batchs[8][0])
+
+        self.apply_errors_gnumSing(self.datafr['sentence'][idx_batchs[9][0]:idx_batchs[9][1]], idx_batchs[9][0])
+        self.apply_errors_ggword_order(self.datafr['sentence'][idx_batchs[9][0]:idx_batchs[9][1]], idx_batchs[9][0])
         
         logging.info("Generando errores combinados")
         self.apply_errors_ggenre(self.datafr['sentence'][idx_batchs[10][0]:idx_batchs[10][1]], idx_batchs[10][0])
@@ -682,6 +688,7 @@ class ErrorGenerator:
 
         self.apply_errors_punctuation(self.datafr['sentence'][idx_batchs[15][0]:idx_batchs[15][1]], idx_batchs[15][0])
         self.apply_errors_gverbForm(self.datafr['sentence'][idx_batchs[15][0]:idx_batchs[15][1]], idx_batchs[15][0]) #
+        self.apply_errors_gnumPlur(self.datafr['sentence'][idx_batchs[15][0]:idx_batchs[15][1]], idx_batchs[15][0]) #
 
         self.apply_errors_gnumSing(self.datafr['sentence'][idx_batchs[16][0]:idx_batchs[16][1]], idx_batchs[16][0])
         self.apply_errors_guart(self.datafr['sentence'][idx_batchs[16][0]:idx_batchs[16][1]], idx_batchs[16][0])
