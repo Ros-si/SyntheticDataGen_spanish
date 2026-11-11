@@ -9,13 +9,13 @@ def main():
     column_name = "text"
     error_rate = 3 
     config = {
-         "sampling": 0.01,
+         "sampling": 0.001,
         "min_string": 8,
         "max_string": 120,
-        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED_v2-1",
+        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED_vmini2",
         "path_data": "./data/",
-        "validation_size": 0.015,
-        "test_size": 0.015,
+        "validation_size": 0.0015,
+        "test_size": 0.0015,
         "nlp": nlp,
         "data_source":dataHF,
         "column_source":column_name
