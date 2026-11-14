@@ -9,10 +9,10 @@ def main():
     column_name = "text"
     error_rate = 3 
     config = {
-        "sampling": 0.02,
+        "sampling": 0.017,
         "min_string": 8,
         "max_string": 120,
-        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED_v2-2",
+        "name_dataset": "WikiCorrupted_spanish_to_GEC-GED_v2-3",
         "path_data": "./data/",
         "validation_size": 0.010,
         "test_size": 0.010,
